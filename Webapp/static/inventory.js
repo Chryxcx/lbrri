@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const selectedCatalogue = catSelect.value;
         selectedCatalogueValue.textContent = selectedCatalogue;
 
-        if (selectedShelf === 'shelf0') {
+        if (selectedShelf === 'none') {
             catSelect.disabled = true;
             catSelect.value = 'all';
         } else {

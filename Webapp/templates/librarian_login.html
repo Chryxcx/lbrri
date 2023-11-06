@@ -1,0 +1,21 @@
+{% extends "base.html" %} {% block title %}Librarian Login{% endblock %}
+{% block content %}
+<form method="POST" action="/lbrrn_login">
+    <container class="container" id="rect5">
+        <div class="form-group">
+            <h1 class="head">Sign In</h1>
+            <div class="input-group4">
+                <label for="lbrrn_usr" class="input-group__label4">Email:</label>
+                <input type="text" class="input-group__input4" id="lbrrn_usr" name="lbrrn_usr" />
+            </div>
+            <div class="input-group5"></div>
+                <label for="lbrrn_pass" class="input-group__label5 ">Password:</label>
+                <input type="password" class="input-group__input5" id="lbrrn_pass" name="lbrrn_pass"/>
+            </div>
+        <br/>
+        <button type="submit" class="btn btn-primary">Log in</button>
+    </container>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    
+</form>
+{% endblock %}

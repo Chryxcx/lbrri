@@ -1,15 +1,18 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, Response, session
 from flask import jsonify
 from flask import current_app
+from flask_login import login_user, login_required, logout_user, current_user
+import MySQLdb.cursors
+import MySQLdb.cursors, re, hashlib
+from .model import Admin
 import cv2
 import qrcode
 from pyzbar.pyzbar import decode
-import tkinter as tk
-from tkinter import Label
-from PIL import Image, ImageTk
+import requests
+from PIL import Image
 from io import BytesIO
-import base64
-import threading
+
+
 
 
 table_prefixes = {
@@ -29,13 +32,64 @@ def clear_cache():
     cache.clear()
     return 'Cache cleared'
 
+@auth.route('/admin_login/', methods=['POST', 'GET'])
+def admin_login():
+    if request.method == 'POST' and 'admin_usr' in request.form and 'admin_pass' in request.form:
+        admin_usr = request.form['admin_usr']
+        password = request.form['admin_pass']
+
+        db = current_app.get_db()
+        cursor = db.cursor(dictionary=True)
+        cursor.execute('SELECT * FROM admin WHERE admin_usr = %s', (admin_usr,))
+        user = cursor.fetchone()
+        cursor.close()
+
+        if user and current_app.bcrypt.check_password_hash(user['admin_pass'], password):
+            # Log the admin in
+            session['loggedin'] = True
+            session['id'] = user['id']  # Use the actual primary key of your admin
+            
+            # Create an Admin instance (modify this according to your actual Admin class)
+            admin_instance = Admin(id=user['id'], admin_usr=user['admin_usr'], admin_pass=user['admin_pass'])
+            login_user(admin_instance, remember=True)
+
+            return redirect(url_for('auth.home'))  # Ensure you have a view function for 'auth.home'
+        else:
+            flash('Incorrect username or password.', 'error')
+
+    # If GET or credentials are wrong
+    return render_template("admin_login.html", user=current_user)
+
+@auth.route('/logout')
+@login_required
+def admin_logout():
+    logout_user()  # This will log out the current user
+    return redirect(url_for('auth.admin_login'))
+
+
+
+@auth.route('/login_cred')
+def login_cred():
+    return render_template("login_credentials.html", user=current_user)      
+
 
 @auth.route('/main')
 def home():
-    return render_template("ov.html", boolean=True)
+    return render_template("home.html", boolean=True, user=current_user)
 
 @auth.route('/inventory')
 def inventory():
+    db = current_app.get_db()
+    cursor  = db.cursor()
+    cursor1 = db.cursor()
+    cursor2 = db.cursor()
+    cursor.execute('SELECT * FROM categories')
+    category_name = cursor.fetchall()
+    print(category_name)
+    cursor1.execute('SELECT * FROM shelves')
+    shelf_num = cursor1.fetchall()
+    
+
     try:
         db = current_app.get_db()
         print("Database:", db)
@@ -48,7 +102,10 @@ def inventory():
         
             
         if shelf is None:
-            return render_template('inventory.html')
+            return render_template('inventory.html', category_name=category_name, shelf_num=shelf_num, user=current_user)
+        else:
+            cursor2.execute(f'DESCRIBE {shelf}')
+            thead = cursor2.fetchall()
 
         cursor = db.cursor()
         
@@ -83,7 +140,7 @@ def inventory():
             # Convert the image to base64
             buffered = BytesIO()
             img.save(buffered, format="PNG")
-            qr_image_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+            # qr_image_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
 
             qr_code_data = {
                 'qrcode': row[0],
@@ -102,7 +159,7 @@ def inventory():
         else:
             filtered_data = qr_code_data_list
 
-        return jsonify(filtered_data)
+        return jsonify(filtered_data, category_name=category_name, shelf=shelf)
     except Exception as e:
         print("Exception:", e)
         return jsonify({'error': 'An error occurred during data retrieval'})
@@ -128,7 +185,20 @@ camera = cv2.VideoCapture(0)  # Initialize the camera when the server starts.
 
 @auth.route('/camera')
 def camera_view():
-    return render_template('camera.html')
+    return render_template('camera.html', user=current_user)
+
+# def retrieve_data():
+#     try:
+#         response = requests.get("http://127.0.0.1:5000/api/qr_data")
+#         if response.status_code == 200:
+#             qr_values = response.json()
+#             return set(qr_values)
+#         else:
+#             print("Error fetching data from API:", response.text)
+#             return set()
+#     except Exception as e:
+#         print("Error fetching data from API:", str(e))
+#         return set()
 
 def generate_frames():
     global streaming, camera
@@ -192,6 +262,7 @@ def insert():
         cursor = db.cursor()
         table = request.form.get('b_shelves')
         cate = request.form.get('b_cata')
+        isbn = request.form.get('isbn')
         title = request.form.get('b_title')
         publisher = request.form.get('b_publisher')
         year = int(request.form.get('b_year'))
@@ -284,9 +355,10 @@ def insert():
             session['current_category'] = cate
             
 
-            query = f"INSERT INTO {table} (id, category, title, publisher, year) VALUES (%s,%s, %s, %s, %s)"
+            query = f"INSERT INTO {table} (id, category, isbn, title, publisher, year) VALUES (%s, %s, %s, %s, %s, %s)"
+            print(f'Inserted: {query}')
 
-            cursor.execute(query, (id, cate, title, publisher, year))
+            cursor.execute(query, (id, cate, isbn, title, publisher, year))
             db.commit()
 
             qr_data = f"ID: {id}, Title: {title}"
@@ -308,4 +380,4 @@ def insert():
             flash('Error inserting data into the database', 'error')
             return jsonify({'success': False, 'error': 'Error inserting data into the database'})
 
-    return render_template("insert.html", qr_image_base64=None, category_name=category_name, shelf=shelf)
+    return render_template("insert.html", qr_image_base64=None, category_name=category_name, shelf=shelf, user=current_user)

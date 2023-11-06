@@ -1,15 +1,20 @@
 from flask import Flask
 from flask_wtf import CSRFProtect
 import mysql.connector
+from flask_login import LoginManager, UserMixin
 from flask_bootstrap import Bootstrap
+from flask_bcrypt import Bcrypt
 import qrcode
 from io import BytesIO
 import base64
 
 
+
 def create_app():
     app = Flask(__name__, static_url_path='/static', static_folder='/auth/static')
     csrf = CSRFProtect(app)
+    bcrypt = Bcrypt(app)
+    app.bcrypt = bcrypt
     Bootstrap(app)
     app.config['MYSQL_HOST'] = 'localhost'
     app.config['MYSQL_USER'] = 'root'
@@ -19,6 +24,27 @@ def create_app():
     app.config['SECRET_KEY'] = 'jdfhajksdfjkasdlfjdasklfjklj'
     
     app.mysql = mysql.connector
+
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = 'auth.admin_login'
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        
+        db = get_db()
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM admin WHERE id = %s", (user_id,))
+        user_record = cursor.fetchone()
+        cursor.close()
+        db.close()
+
+        if user_record:
+            user = UserMixin()
+            user.id = user_record['id']
+            # Add other user properties from record as needed
+            return user
+        return None
 
     def get_db():
         db = mysql.connector.connect(
