@@ -28,14 +28,13 @@
 form .txt_field{
     position: relative;
     border-bottom: 2px solid black;
-    margin: 30px 50px;
-    margin-top: 120px;
+    margin: 0px 450px;
+    margin-top: 50px;
 }
 
 
 
 .txt_field input{
-    width: 100%;
     padding: 0 5px;
     height: 40px;
     font-size: 16px;

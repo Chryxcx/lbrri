@@ -9,6 +9,7 @@
         <link rel="stylesheet" type="text/css" href="{{ url_for('auth.static', filename='design.css') }}">
         <link rel="stylesheet" type="text/css" href="{{ url_for('auth.static', filename='forgot_password.css') }}">
         <link rel="stylesheet" type="text/css" href="{{ url_for('auth.static', filename='sidebar.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ url_for('auth.static', filename='LSSB.css') }}">
         
         <title> {% block title %}librohan{% endblock %} </title>
         </head>
@@ -43,7 +44,7 @@
                               <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                   Records
                               </a>
-                              <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                              <ul class="dropdown-menu" aria-labelledby="navbarDropdown" id="dropdowns-css">
                                   <li><a class="dropdown-item" href="#">Log Credentials</a></li>
                                   <li><a class="dropdown-item" href="#">Borrowers</a></li>
                                   <li><a class="dropdown-item" href="#">Books Borrowed</a></li>

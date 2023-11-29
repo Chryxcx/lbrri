@@ -2,29 +2,32 @@
     {% block title %}Insert{% endblock %}
     {% block content %}
         <form method="POST" action="/insert" id="insert-form">
+            <h1 class="h-insert">Insert a Book</h1>
             <div class="container" id="rect5">
-                <h1 class="head">Insert a Book</h1>
-                <div class="form-group">
-                    <div class="input-group">
-                        <input id="title" type="text" class="input-group__input" name="b_title" autocomplete="off" required/>
-                        <label for="title" class="input-group__label">Title</label>
+                <div class="form-group" id="form-insert">
+                    <div class="txt_field">
+                        <input type="text" name="b_title" autocomplete="off" required/>
+                        <span></span>
+                        <label>Title</label>
                     </div>
-                    <div class="input-group1">
-                        <input id="year1" type="text" class="input-group__input1" name="b_year" autocomplete="off" required/>
-                        <label for="year1" class="input-group__label1">Year Published</label>
+                    <div class="txt_field">
+                        <input type="text" name="b_year" autocomplete="off" required/>
+                        <span></span>
+                        <label >Year Published</label>
                     </div>
-                    <div class="input-group2">
-                        <input id="publisher" type="text" class="input-group__input2" name="b_publisher" autocomplete="off" required/>
-                        <label for="publisher" class="input-group__label2">Publisher</label>     
+                    <div class="txt_field">
+                        <input type="text" name="b_publisher" autocomplete="off" required/>
+                        <span></span>
+                        <label >Publisher</label>     
                     </div>
-                    <div class="input-group3">
-                        <input id="isbn" type="text" class="input-group__input3" name="isbn" autocomplete="off" required/>
-                        <label for="isbn" class="input-group__label3">ISBN</label>
+                    <div class="txt_field">
+                        <input type="text"  name="isbn" autocomplete="off" required/>
+                        <label for="isbn" >ISBN</label>
                     </div>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" id="dd-group">
                     <p class="shelf">Shelf:</p>
                     <label for="shelves"></label>
                     <select size="1"class="form-select" name="b_shelves" id="shelves">
@@ -42,9 +45,9 @@
                         {% endfor %}
                     </select>
 
-                    <p class="cats">Row:</p>
-                    <label for="cate"></label>
-                    <select class="form-select" name="num_row" id="cate">                 
+                    <p class="row">Row:</p>
+                    <label for="row"></label>
+                    <select class="form-select" name="num_row" id="row">                 
                         {% for n in b_rows %}    
                         <option value="{{n[1]}}">{{n[1]}}</option>
                         {% endfor %}
@@ -53,7 +56,7 @@
                     
                 </div>
                 <br/>
-                <button type="submit" class="btn btn-success" >Submit</button>
+                <button type="submit" class="btn btn-success" id="s-button">Submit</button>
                 
                 <div class="qrbox">
                     <div class="form-group" id="qcode">

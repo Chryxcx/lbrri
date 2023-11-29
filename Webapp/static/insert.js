@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('insert-form');
+    const qrbox = document.querySelector('.qrbox');
     const qrImage = document.getElementById('qrImage');
     const SizeInput = document.getElementById('SizeInput');
 
@@ -72,6 +73,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 showError('Error generating QR code. Please try again.');
                 return;
             }
+
+            qrbox.style.display = 'block';
     
             qrImage.src = 'data:image/png;base64,' + responseData.qr_image_base64;
             updateQRCodeSize();

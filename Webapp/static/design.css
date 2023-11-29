@@ -83,11 +83,12 @@
     #rect2{
         position: center;
         width: 100%;
-        height: 650px;
+        height: 725px;
         overflow: auto;
         background: #9F9D83;
         box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
         border-radius: 20px;
+        margin-top: 6%;
     }
     .rect3{
         position: absolute;
@@ -108,20 +109,27 @@
         overflow: auto;
     }
 
+    #dd-group{
+        margin-top: 50px;
+        margin-left:-120px;
+    }
+
     #rect5{
+        margin-left: -50px;
         position: center;
-        width: 95%;
+        width: 50%;
         height: 600px;
         display: center;
-        margin-top: 8%;
+        margin-top: 15%;
         background: #F2F0BB;
         border-radius: 15px;
-        overflow: auto;
+        overflow:auto;
     }
 
     .qrbox {
         text-align: center;
         padding: 20px;
+        display: none;
     }
 
     .insert-form{
@@ -156,6 +164,22 @@
         letter-spacing: -0.015em;
         color: #000000;
     }
+
+    .h-insert{
+        position: absolute;
+        width: 245px;
+        height: 33px;
+        left: 50px;
+        margin-top: -75px;
+        margin-left: 37%;
+        font-family: 'Montserrat';
+        font-style: normal;
+        font-weight: 400;
+        font-size: 36px;
+        line-height: 44px;
+        z-index: 1;
+        color: #000000;
+    }
             
     a.nbutton{
         font-family: 'Montserrat';
@@ -181,6 +205,19 @@
         
     }
 
+    #s-button{
+        display: center;
+    }
+
+    .dropdown-menu {
+        background-color: #8CDF34;
+    }
+
+    .dropdown-item:hover {
+        background-color: #54871d;
+        transition: 0.5s ease;
+    }
+
     input[type=text] {
         width: 100%;
         padding: 12px 20px;
@@ -192,10 +229,6 @@
         z-index: 1000;
         border: 2px solid black
         
-      }
-      
-    input[type=text]:focus {
-        background-color: lightblue;
       }
 
 
@@ -474,8 +507,19 @@
         width: 41%;
         margin-left: 30%;
      }
+
+     #form-insert{
+        display: center;
+     }
      
-     
+     p.row{
+        margin-top: -78px;
+        margin-left: 61%;
+        font-style: 'Montserrat';
+        font-size: 20px;
+        text-align: center;
+    }
+
      p.cats{
         margin-top: -78px;
         margin-left: 120px;
@@ -498,6 +542,32 @@
         width: 8%;
         max-height:250px;
         margin-left: 40%;
+        margin-top: -30px;
+        color: #000000;
+        overflow: auto;
+        
+            
+    }
+
+    #cate, #cate:hover{
+        background-color: #B7FFB0;
+        font-size: 100%;
+        width: 9%;
+        max-height:250px;
+        margin-left: 50%;
+        margin-top: -30px;
+        color: #000000;
+        overflow: auto;
+        
+            
+    }
+
+    #row, #row:hover{
+        background-color: #B7FFB0;
+        font-size: 100%;
+        width: 8%;
+        max-height:250px;
+        margin-left:61%;
         margin-top: -30px;
         color: #000000;
         overflow: auto;
