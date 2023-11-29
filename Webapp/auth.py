@@ -302,11 +302,9 @@ def inventory():
     try:
         db = current_app.get_db()
         cursor = db.cursor()
-        print(f'cursor: {cursor}')
 
         cursor.execute('SELECT * FROM categories')
         category_name = cursor.fetchall()
-        print(category_name)
 
         cursor.execute('SELECT * FROM shelves')
         shelf_num = cursor.fetchall()
@@ -315,46 +313,35 @@ def inventory():
         gen_books = cursor.fetchall()
 
         shelf = request.args.get('shelf_id')
-        print("Selected shelf:", shelf)
         category = request.args.get('catalog')
-        print("Category:", category)
         search_query = request.args.get('search_query')
-        print("Search:", search_query)
 
         columns = []
 
         if shelf is None:
             return render_template('inventory.html', category_name=category_name, shelf_num=shelf_num, gen_books=gen_books, columns=columns)
 
-        qr_code_data_list = []
-
-        if category == 'all':
-            if shelf == "all":
-                # Query data from all shelves
-                query = "SELECT book_id, category, isbn, title, publisher, year_published, quantity, availability FROM gen_books"
-                cursor.execute(query)
-            else:
-                query = f"SELECT book_id, category, isbn, title, publisher, year_published FROM {shelf}"
-                cursor.execute(query)
-
-        elif shelf == "all":
-            # Query data from all shelves
+        if category == 'all' and shelf == 'all':
             query = "SELECT book_id, category, isbn, title, publisher, year_published, quantity, availability FROM gen_books"
             cursor.execute(query)
-
+        elif category == 'all':
+            query = f"SELECT book_id, category, isbn, title, publisher, year_published FROM {shelf}"
+            cursor.execute(query)
+        elif shelf == 'all':
+            query = f"SELECT book_id, category, isbn, title, publisher, year_published FROM gen_books WHERE category = %s"
+            cursor.execute(query, (category,))
         else:
             query = f"SELECT book_id, category, isbn, title, publisher, year_published FROM {shelf} WHERE category = %s"
             cursor.execute(query, (category,))
 
-        # Fetch the results of the query
         data = cursor.fetchall()
-        print('data: ', data)
 
         data_list = []
 
         for row in data:
             if shelf == "all":
                 data_item = {
+                    'book_id': row[0],
                     'category': row[1],
                     'isbn': row[2],
                     'title': row[3],
@@ -363,9 +350,9 @@ def inventory():
                     'quantity': row[6],
                     'availability': row[7]
                 }
-                print('more data', data_item)
             else:
                 data_item = {
+                    'book_id': row[0],
                     'category': row[1],
                     'isbn': row[2],
                     'title': row[3],
@@ -374,7 +361,6 @@ def inventory():
                 }
 
             data_list.append(data_item)
-            print(data_item)
 
         filtered_data = data_list
 
@@ -384,6 +370,7 @@ def inventory():
                              search_query in item['title'].lower() or search_query in item['publisher'].lower()]
 
         return jsonify(filtered_data)
+
     except Exception as e:
         print("Exception:", e)
         return jsonify({'error': 'An error occurred during data retrieval'})
@@ -526,7 +513,7 @@ def reset_token(token):
 def qr_codes(image_id):
     try:
         image_path = f"Webapp/static/qr_codes/{image_id}.png"
-        with open(image_path, "rb") as image_file:
+        with open(image_path, "rb") as image_file:  
             response = Response(image_file.read(), content_type="image/png")
             return response
     except FileNotFoundError:

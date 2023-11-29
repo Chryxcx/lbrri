@@ -1,16 +1,10 @@
-{% extends "base.html" %} {% block title %}Inventory{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}Inventory{% endblock %}
 
 {% block content %}
 
 <form id="inventory-form">
-    {{ csrf_token() }}
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-        {% for message in messages %}
-            {{ message }}
-        {% endfor %}
-    {% endif %}
-    {% endwith %}
     <div class="select-box" style="width:10%">
         <label for="shelf_id"> Shelf: </label>
         <select class="form-select" id="shelf_id" name="shelf_id">
@@ -24,10 +18,10 @@
     <div class="select-box" style="width:10%">
         <label for="catalog"> Category: </label>
         <select class="form-select" id="catalog" name="catalog" disabled>
-            <option value= "all" selected>All</option>
+            <option value="all" selected>All</option>
             {% for c in category_name %}
-            <option value="{{c[1]}}">{{c[1]}}</option>  
-        {% endfor %}
+                <option value="{{c[1]}}">{{c[1]}}</option>
+            {% endfor %}
         </select>
     </div>
 
@@ -44,17 +38,29 @@
         <table class="table table-hover table-sm table-borderless align-middle">
             <thead>
                 <tr>
-                    {% for column in columns %}
-                        <th>{{ column }}</th>
-                    {% endfor %}
+                    <th>QR Code</th>
+                    <th>Category</th>
+                    <th>ISBN</th>
+                    <th>Title</th>
+                    <th>Publisher</th>
+                    <th>Year Published</th>
+                    <th>Quantity</th>
+                    <th>Availability</th>
                 </tr>
             </thead>
             <tbody id="table-body">
-                {% for qr_code_data in qr_code_data_list %}
-                    <tr class="qr-row" data-toggle="modal" data-qr-code="/qr_codes/{{ qr_code_data.qrcode }}">
-                        {% for column in columns %}
-                            <td>{{ qr_code_data[column.lower()] }}</td>
-                        {% endfor %}
+                {% for book_data in data %}
+                    <tr class="qr-row" data-toggle="modal" data-qr-code="/qr_codes/{{ book_data.book_id }}">
+                        <td>
+                            <img src="" alt="QR Code" class="qr-code-size" id="qr-code-img-{{ book_data.book_id }}">
+                        </td>
+                        <td>{{ book_data.category }}</td>
+                        <td>{{ book_data.isbn }}</td>
+                        <td>{{ book_data.title }}</td>
+                        <td>{{ book_data.publisher }}</td>
+                        <td>{{ book_data.year_published }}</td>
+                        <td>{{ book_data.quantity }}</td>
+                        <td>{{ book_data.availability }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -62,8 +68,7 @@
     </div>
 </form>
 
-<script type="text/javascript" src="{{ url_for('auth.static', filename='inventory.js') }}">
-   
-</script>
+<script type="text/javascript" src="{{ url_for('auth.static', filename='inventory.js') }}"></script>
+
 {% endblock %}
 

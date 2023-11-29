@@ -16,15 +16,14 @@
           
         </style>
         <body>
-          <div class="container-fluid" id="rect">
-            <h1 class="head"><a class="c"  href="/" id="home">WONDERPETS</a></h1>
-        </div>
-          <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        
+          <nav class="navbar navbar-expand-lg navbar-light bg-light" id="rect">
             <div class="container">
-                <a class="navbar-bra  nd" id="newnb">Librohan</a>
+                <h1 class="head"><a class="c"  href="/" id="home">WONDERPETS</a></h1>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
+                {% if session.loggedin %}
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item">
@@ -58,7 +57,11 @@
                                 Settings
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                {% if session.role == "admin"%}
                                 <li><a class="dropdown-item" href="#">Create Acc</a></li>
+                                {% elif session.role == "librarian" %}
+                                <li><a class="dropdown-item" href="#">Create Borrower</a></li>
+                                {% endif %}
                                 <li><a class="dropdown-item" href="#">Profile</a></li>
                                 <li><a class="dropdown-item" href="#">Reset password</a></li>
                             </ul>
@@ -71,6 +74,10 @@
                 </div>
             </div>
         </nav>
+        <div>
+            <a class="navbar-bra  nd" id="newnb">Welcome! {{session.username}}</a>
+            </div>
+        {% endif %}
               <div id="rect2">
                   {% block content %}    
                   {% endblock %}
