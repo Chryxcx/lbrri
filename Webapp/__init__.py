@@ -1,6 +1,7 @@
-from flask import Flask
+from flask import Flask, session, g
 from flask_wtf import CSRFProtect
 import mysql.connector
+from flask_mail import Mail
 from flask_login import LoginManager, UserMixin
 from flask_bootstrap import Bootstrap
 from flask_bcrypt import Bcrypt
@@ -12,39 +13,34 @@ import base64
 
 def create_app():
     app = Flask(__name__, static_url_path='/static', static_folder='/auth/static')
-    csrf = CSRFProtect(app)
-    bcrypt = Bcrypt(app)
-    app.bcrypt = bcrypt
-    Bootstrap(app)
+    app.config['SECRET_KEY'] = 'jdfhajksdfjkasdlfjdasklfjklj'
     app.config['MYSQL_HOST'] = 'localhost'
     app.config['MYSQL_USER'] = 'root'
     app.config['MYSQL_PASSWORD'] = 'chocolate29'
     app.config['MYSQL_DB'] = 'db_library'
     app.config['STATIC_FOLDER'] = 'path/to/static'
-    app.config['SECRET_KEY'] = 'jdfhajksdfjkasdlfjdasklfjklj'
+
+    # Mail configuration
+    app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+    app.config['MAIL_PORT'] = 465
+    app.config['MAIL_DEFAULT_SENDER'] = 'librohans@gmail.com'
+    app.config['MAIL_USERNAME'] = 'librohans@gmail.com'
+    app.config['MAIL_PASSWORD'] = 'uwwh glcs iqvj ccly'
+    app.config['SECURITY_PASSWORD_SALT'] = 'your_security_password_salt_so_strong'
+    app.config['MAIL_USE_TLS'] = False
+    app.config['MAIL_USE_SSL'] = True
+
+    # Initialize extensions
+    bcrypt = Bcrypt(app)
+    csrf = CSRFProtect(app)
+    Bootstrap(app)
+    mail = Mail(app)
+
+    # Store instances in the app for easy access
+    app.csrf = csrf
+    app.bcrypt = bcrypt
+    app.mail = mail
     
-    app.mysql = mysql.connector
-
-    login_manager = LoginManager()
-    login_manager.init_app(app)
-    login_manager.login_view = 'auth.admin_login'
-
-    @login_manager.user_loader
-    def load_user(user_id):
-        
-        db = get_db()
-        cursor = db.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM admin WHERE id = %s", (user_id,))
-        user_record = cursor.fetchone()
-        cursor.close()
-        db.close()
-
-        if user_record:
-            user = UserMixin()
-            user.id = user_record['id']
-            # Add other user properties from record as needed
-            return user
-        return None
 
     def get_db():
         db = mysql.connector.connect(
@@ -62,8 +58,7 @@ def create_app():
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=5,
-            border=4,
+            border=0,
         )
         qr.add_data(data)
         qr.make(fit=True)
@@ -81,13 +76,15 @@ def create_app():
     app.generate_qr_code = generate_qr_code 
     
     
+    
     from .view import view
     from .auth import auth
     
     app.register_blueprint(view,url_prefix='/')
-    app.register_blueprint(auth,url_prefix='/')
+    app.register_blueprint(auth,url_prefix='/')\
     
     
+
     
     return app
 

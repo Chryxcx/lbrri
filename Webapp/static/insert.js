@@ -1,90 +1,107 @@
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('insert-form');
-    const qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
     const qrImage = document.getElementById('qrImage');
-    const qrsize = document.getElementById('qrsize');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const Size = document.getElementById('SizeInput');
-    
+    const SizeInput = document.getElementById('SizeInput');
+
     let responseData;
-    let selectedSize = 100; // Set the initial size, you can change this to your default size
+    let selectedSize = 30;
 
     function updateQRCodeSize() {
-        selectedSize = qrsize.value;
         qrImage.style.width = selectedSize + 'px';
         qrImage.style.height = selectedSize + 'px';
-        Size.value = selectedSize; // Update the hidden input field with the selected size
-        sizeValue.textContent = selectedSize;
+        SizeInput.value = selectedSize;
     }
 
-    async function generateQRCodeAndShowModal() {
-        const formData = new FormData(form);
+    function changeSize(size) {
+        selectedSize = size;
+        updateQRCodeSize();
+    }
 
-        // Capture the selected size and store it in the formData
-        formData.append('selected_size', selectedSize);
+    // Event listeners for size buttons
+    document.getElementById('xsmall').addEventListener('click', function () {
+        changeSize(57);
+    });
 
-        try {
-            const response = await fetch('/insert', {
-                method: 'POST',
-                body: formData
-            });
+    document.getElementById('small').addEventListener('click', function () {
+        changeSize(76);
+    });
 
-            if (response.ok) {
-                responseData = await response.json();
-                if (responseData.success) {
-                    document.getElementById('title').value = '';
-                    document.getElementById('year1').value = '';
-                    document.getElementById('publisher').value = '';
-                    qrImage.src = "data:image/png;base64," + responseData.qr_image_base64; // Set QR code image
-                    console.log(qrImage)
-                    qrModal.show();// Show the modal with the generated QR code
-                    console.log(qrModal)
-                    updateQRCodeSize();
-                    
-                } else {
-                    // Handle error case
-                    // Display flash messages
+    document.getElementById('medium').addEventListener('click', function () {
+        changeSize(94);
+    });
 
-                    const flashMessages = document.querySelector('.flash-messages');
-                    if (flashMessages) {
-                        flashMessages.innerHTML = ''; // Clear any existing messages
-                        const alert = document.createElement('div');
-                        alert.className = 'alert alert-danger';
-                        alert.textContent = 'There is something wrong..'; // Modify this message
-                        flashMessages.appendChild(alert);
-                    }
-                }
-            } else {
-                const flashMessages = document.querySelector('.flash-messages');
-                if (flashMessages) {
-                    flashMessages.innerHTML = ''; // Clear any existing messages
-                    const alert = document.createElement('div');
-                    alert.className = 'alert alert-danger';
-                    alert.textContent = 'There is something wrong..'; // Modify this message
-                    flashMessages.appendChild(alert);
-                }
-                console.error('Response not OK');
-            }
-        } catch (error) {
-            console.error('Error:', error);
+    document.getElementById('large').addEventListener('click', function () {
+        changeSize(113);
+    });
+
+    function showError(message) {
+        const flashMessages = document.querySelector('.flash-messages');
+        if (flashMessages) {
+            flashMessages.innerHTML = '';
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-danger';
+            alert.textContent = message;
+            flashMessages.appendChild(alert);
         }
     }
 
-    form.addEventListener('submit', async function(event) {
-        event.preventDefault(); // Prevent the default form submission
-
-        // Generate QR code and insert data into the database
-        await generateQRCodeAndShowModal();
-
-        // Rest of your download code...
-    });
+    async function generateQRCodeAndShowModal() {
+        try {
+            const formData = new FormData(form);
+            formData.append('selected_size', selectedSize);
     
-    downloadBtn.addEventListener('click', async function() {
-        // Generate QR code and insert data into the database
-        
+            const response = await fetch('/insert', {
+                method: 'POST',
+                body: formData,
+            });
+    
+            if (!response.ok) {
+                showError('There is something wrong with the server.');
+                return;
+            }
+    
+            try {
+                responseData = await response.json();
+            } catch (jsonError) {
+                console.error('JSON Parsing Error:', jsonError);
+                showError('Error parsing server response.');
+                return;
+            }
+    
+            if (!responseData.success) {
+                showError('Error generating QR code. Please try again.');
+                return;
+            }
+    
+            qrImage.src = 'data:image/png;base64,' + responseData.qr_image_base64;
+            updateQRCodeSize();
+    
+            // Add this part to request the generated QR code from the server
+            const qrCodeID = responseData.qrCodeID;
+            const qrCodeUrl = `/qr_codes/${qrCodeID}`;
+            const qrCodeResponse = await fetch(qrCodeUrl);
+            if (qrCodeResponse.ok) {
+                // Use the generated QR code image
+                qrImage.src = qrCodeUrl;
+            } else {
+                console.error('Error loading generated QR code image.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showError('An unexpected error occurred.');
+        }
+    }
 
-        // Create a new image element with the preferred size
+    form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        console.log('Form submitted');
+        await generateQRCodeAndShowModal();
+    });
+
+    // Move the downloadBtn event listener outside of the form submit listener
+    downloadBtn.addEventListener('click', function () {
         const downloadedImage = new Image();
+        const qrCodeID = responseData.qrCodeID;
         downloadedImage.src = qrImage.src;
         downloadedImage.style.width = selectedSize + 'px';
         downloadedImage.style.height = selectedSize + 'px';
@@ -102,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Create an anchor element for downloading
         const a = document.createElement('a');
         a.href = dataURL;
-        a.download = 'qr_code.png';
+        a.download = `${qrCodeID}.png`;
         a.style.display = 'none';
 
         // Trigger the download by clicking the anchor element
@@ -112,8 +129,5 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Clean up the anchor element
         document.body.removeChild(a);
     });
-        
-    // Update QR code size when the user selects a new size
-    qrsize.addEventListener('input', updateQRCodeSize);
-});
 
+});

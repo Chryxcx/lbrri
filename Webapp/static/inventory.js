@@ -85,19 +85,23 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateTable(data) {
         const booksTableBody = document.getElementById('table-body');
         booksTableBody.innerHTML = ''; // Clear existing table data
-
+    
         data.forEach(row => {
             const newRow = booksTableBody.insertRow();
             const qrCell = newRow.insertCell();
             const qrImage = new Image();
-            qrImage.src = `/qr_codes/${row.qrcode}`;
+            // Ensure that 'row.qrcode' contains a base64 string or a URL to the image
+            qrImage.src = row.qrcode;
             qrImage.alt = 'QR Code';
             qrImage.classList.add('qr-code-size');
             qrCell.appendChild(qrImage);
             newRow.insertCell().textContent = row.category;
+            newRow.insertCell().textContent = row.isbn;
             newRow.insertCell().textContent = row.title;
             newRow.insertCell().textContent = row.publisher;
-            newRow.insertCell().textContent = row.year;
+            newRow.insertCell().textContent = row.year_published;
+            newRow.insertCell().textContent = row.quantity; // Add this line for quantity
+            newRow.insertCell().textContent = row.availability;
         });
     }
 });

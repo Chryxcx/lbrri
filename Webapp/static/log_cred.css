@@ -1,0 +1,29 @@
+#search_query {
+    position:absolute;
+    margin-top: -2%;
+    transform: translateX(121%);
+    left: 2%;
+    width: 28%;
+    
+}
+
+.table-responsive-lg{
+    margin-top: 2%;
+    padding: 1%;
+}
+
+table tr td, table tr {
+    background-color: rgb(255, 255, 255) !important;
+    text-align: center;
+    border-collapse: collapse;
+    border: 1px solid;
+    margin-top: 10%;
+}
+th {
+    position: sticky;
+    background-color: rgb(255, 255, 255) !important;
+    top: 0;
+    text-align: center;
+    border-collapse: collapse;
+    border: 1px solid;
+}

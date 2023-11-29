@@ -1,0 +1,29 @@
+
+.cabox {
+position: absolute;
+width: 707px;
+height: 676px;
+left: 367px;
+top: 307px;
+
+background: #F9F7B2;
+box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+border-radius: 20px;
+}
+
+.create_acc{
+    position: absolute;
+    width: 491px;
+    height: 48px;
+    left: 100px;
+    top:50px;
+
+    background: #23A40F;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    border-radius: 8px;
+
+}
+
+.calabel{
+    
+}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Check Email{% endblock %}
+{% block content %}
+<form id="borrowed-form">
+    <div>
+        <div>
+            <h1 class="head"><a class="c"  href="/" id="log">Members Info</h1>
+        </div>
+        
+        <div>
+            <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" id="search_query"
+                name="search_query" autocomplete="off">
+        </div>
+        <div id="rect4" class="table-responsive-lg">
+            <table class="table table-hover table-sm table-borderless align-middle">
+                <thead>
+                    <tr>
+                        <!-- <th scope="col">#</th> -->
+                        <th scope="col">Book ID</th>
+                        <th scope="col">Staff Librarian</th>
+                        <th scope="col">Borrower</th>
+                        <th scope="col">Date Borrowed</th>
+                        <th scope="col">Date Return</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                </thead>
+                <tbody> 
+                    {% if data %}
+                        {% for row in data %}
+                            <tr>
+                                <td>{{ row['staff_librarian'] }}</td>
+                                <td>{{ row['borrower'] }}</td>
+                                <td>{{ row['date_borrowed'] }}</td>
+                                <td>{{ row['date_return'] }}</td>
+                                <td>{{ row['status'] }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="3">No data available</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</form>
+{% endblock %}

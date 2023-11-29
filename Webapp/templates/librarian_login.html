@@ -1,6 +1,7 @@
 {% extends "base.html" %} {% block title %}Librarian Login{% endblock %}
 {% block content %}
 <form method="POST" action="/lbrrn_login">
+    {{ csrf_token() }}
     <container class="container" id="rect5">
         <div class="form-group">
             <h1 class="head">Sign In</h1>

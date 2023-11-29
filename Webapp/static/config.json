@@ -1,0 +1,31 @@
+
+{
+"shelf_prefix": {
+    "shelf01": "S1",
+    "shelf02": "S2",
+    "shelf03": "S3",
+    "shelf04": "S4",
+    "shelf05": "S5",
+    "shelf06": "S6",
+    "shelf07": "S7",
+    "shelf08": "S8",
+    "shelf09": "S9",
+    "shelf10": "S10",
+    "shelf11": "S11",
+    "shelf12": "S12",
+    "shelf13": "S13",
+    "shelf14": "S14",
+    "shelf15": "S15"
+  },
+  "category_prefix": {
+    "Computer": "A-",
+    "Filipino": "B-",
+    "Physics": "C-",
+    "Religion": "D-",
+    "Mathematics": "E-",
+    "English": "F-",
+    "Algebra": "G-",
+    "Kasaysayan": "H-",
+    "Philippine Literature": "I-"
+  }
+}

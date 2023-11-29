@@ -1,0 +1,31 @@
+{% extends "base.html" %} {% block title %}Login{% endblock %}
+{% block content %}
+<form method="POST" action="{{ url_for('auth.login') }}">
+    <container class="container" id="rect5">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flashes">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul> 
+            {% endif %}
+        {% endwith %}
+        <div class="form-group">
+            <h1 class="head">Sign In</h1>
+            <div class="input-group4">
+                <label for="admin_usr" class="input-group__label4">User Name:</label>
+                <input type="text" class="input-group__input4" id="admin_usr" name="usr_name" autocomplete="off" />
+            </div>
+            <div class="input-group5">
+                <label for="admin_pass" class="input-group__label5 ">Password:</label>
+                <input type="password" class="input-group__input5" id="admin_pass" name="usr_pass"/>
+            </div>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <a href ="/forgot_pass"></a>
+            <br/>
+            <button type="submit" class="btn btn-primary">Log in</button>
+        </div>
+    </container>
+</form>
+{% endblock %}

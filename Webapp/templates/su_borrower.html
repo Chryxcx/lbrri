@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Create Account{% endblock %}
+{% block content %}
+
+<link rel="stylesheet" type="text/css"  href="design.css">
+  <body>
+    <div class="center">
+      <h1>Create Account for Borrower</h1>
+      <form method="post" id="signup-form">
+        <div class="txt_field" name=" l_signup">
+          <input type="name" required>
+          <span></span>
+          <label>Name</label>
+        </div>
+        <div class="txt_field" name="l_email1"> 
+          <input type="email1" required>
+          <span></span>
+          <label>Email</label>
+        </div>
+        <div class="txt_field" name="l_contact"> 
+            <input type="contact" required>
+            <span></span>
+            <label>Contact Number</label>
+        </div>
+        <div class="input-group3" name="l_birthdate"> 
+            <label>Birthdate</label>
+            <input type="date" required>
+            <span></span>
+        </div>
+        <div class="gender-box">
+          <h3>Gender</h3>`
+          <div class="gender-option">
+            <div class="gender1">
+              <input type="radio" id="check-male" name="gender" checked />
+              <label for="check-male">Male</label>
+            </div>
+            <div class="gender2">
+              <input type="radio" id="check-female" name="gender" />
+              <label for="check-female">Female</label>
+            </div>
+          </div>
+        </div>
+    
+        <div><input class="create" type="submit" value="Create"></div>
+      
+      </form>
+    </div>
+
+  </body>
+{% endblock %}
