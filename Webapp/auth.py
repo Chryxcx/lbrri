@@ -4,21 +4,18 @@ from flask import current_app
 from flask_wtf.csrf import CSRFProtect
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_bcrypt import Bcrypt
 from flask_mail import Message
 from flask_wtf.csrf import CSRFProtect
 from flask_wtf.csrf import generate_csrf
+import hashlib
 import mysql.connector
 import json
 from mysql.connector import Error
-from datetime import datetime
 import qrcode
-import base64
 from io import BytesIO
 from functools import wraps
 
 
-bcrypt = Bcrypt()
 csrf = CSRFProtect()
 auth = Blueprint('auth', __name__, static_folder='static', static_url_path='/auth/static')
 
@@ -45,7 +42,18 @@ def librarian_required(f):
             return redirect(url_for('auth.login'))
     return decorated_function
 
-def both_required(f):
+
+def staff_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'loggedin' in session and 'role' in session and session['role'] == 'staff':
+            return f(*args, **kwargs)
+        else:
+            flash("You must be an admin to access this page.", "warning")
+            return redirect(url_for('auth.login'))
+    return decorated_function
+
+def al_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'loggedin' in session and 'role' in session and (session['role'] == 'librarian' or session['role'] == 'admin'):
@@ -56,24 +64,25 @@ def both_required(f):
             return redirect(url_for('auth.login'))
     return decorated_function
 
-
-@auth.route('/get_csrf_token', methods=['GET'])
-def get_csrf_token():
-    csrf_token = generate_csrf()
-    return jsonify({'csrf_token': csrf_token})
+def both_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'loggedin' in session and 'role' in session and (session['role'] == 'librarian' or session['role'] == 'admin' or session['role'] == 'staff'):
+            return f(*args, **kwargs)
+        else:
+            flash("You must be a librarian or admin to access this page.", "warning")
+            session.clear()
+            return redirect(url_for('auth.login'))
+    return decorated_function
 
 @auth.route('/login/', methods=['POST', 'GET'])
 def login():
-    message = ''
-    print()
-    if request.method == 'POST' and 'usr_name' in request.form and 'usr_pass' in request.form :
+    if request.method == 'POST' and 'usr_name' in request.form and 'usr_pass' in request.form:
         usr = request.form['usr_name']
         password = request.form['usr_pass']
+        hashed_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
 
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        print(hashed_password)
         try:
-            print('connecting')
             # Establish a connection to the MySQL database
             connection = mysql.connector.connect(
                 host='localhost',
@@ -83,9 +92,9 @@ def login():
             )
 
             if connection.is_connected():
-                print("Connected to MySQL database")
-
                 cursor = connection.cursor(dictionary=True)
+                cursor.execute("SET time_zone = '+08:00';")
+
 
                 cursor.execute('''
                     SELECT u.*, r.name AS role_name
@@ -95,19 +104,31 @@ def login():
                     WHERE u.username = %s
                 ''', (usr,))
                 user = cursor.fetchone()
-                print(user)
 
                 if user and 'password' in user:
-                    if bcrypt.check_password_hash(user['password'], password):
+                    if user['password'] == hashed_password:
                         session['loggedin'] = True
                         session['id'] = user['id']
                         session['email'] = user['email']
                         session['username'] = user['username']
                         session['role'] = user['role_name']
 
+                        cursor.execute('''
+                            SELECT phn_num
+                            FROM accounts_info
+                            WHERE id = %s
+                        ''', (user['id'],))
+                        user_contact = cursor.fetchone()
+
+                        # Check if 'phn_num' is present in the result
+                        if user_contact and 'phn_num' in user_contact:
+                            session['phn_num'] = user_contact['phn_num']
+                        else:
+                            session['phn_num'] = None
+
                         role = user['role_name']
-                        email = user['email']  # Assuming you want to use the email from the login user
-                        username = user['username']  # Assuming you want to use the username from the login user
+                        email = user['email']
+                        username = user['username']
 
                         cursor.execute('''
                             INSERT INTO log_cred (role, email, username, time_in)
@@ -115,24 +136,24 @@ def login():
                         ''', (role, email, username))
                         connection.commit()
 
-                        print('password: ',password)
                         return redirect(url_for('auth.home'))
-                    
+
                     else:
-                        message = 'Invalid username or password'
-                        return jsonify({'status': 'error', 'message': message})
+                        flash('Invalid username or password', 'error')
+
+            flash('Invalid username or password', 'error')
+
         except Error as e:
             print("Error while connecting to MySQL", e)
-            message = 'Internal server error'
-            return jsonify({'status': 'error', 'message': message})
+            flash('Internal server error', 'error')
 
-
-    return render_template("u_login.html", message=message)
+    return render_template("u_login.html")
 
 @auth.route('/logout')
-# @both_required
+@both_required
 def logout():
     try:
+
         if 'email' in session:
             email = session['email']
 
@@ -147,15 +168,22 @@ def logout():
 def logout_time(email):
     try:
         db = current_app.get_db()
-        cursor = db.cursor()
-        # Update the time_out column in the log_cred table
-        query = "UPDATE log_cred SET time_out = %s WHERE email = %s AND time_out IS NULL"
-        cursor.execute(query, (datetime.now(), email))
+
+
+        with db.cursor(dictionary=True) as cursor:
+            cursor.execute("SET time_zone = '+08:00';")
+            query = "UPDATE log_cred SET time_out = NOW() WHERE email = %s AND time_out IS NULL"
+            cursor.execute(query, (email,))
+
+        # Commit the changes
         db.commit()
+
     except Exception as e:
         print("Exception during update_logout_time:", e)
     finally:
-        cursor.close()
+        # Ensure the cursor is closed
+        if cursor:
+            cursor.close()
 
 @auth.route('/<shelf_id>', methods=['GET', 'POST'])
 def view_shelf(shelf_id):
@@ -174,111 +202,244 @@ def view_shelf(shelf_id):
 def home():
     return render_template("home.html", boolean=True)
 
+@auth.route('/create_borrower', methods=['GET', 'POST'])
+def create_borrower():
+    db = current_app.get_db()
+    print('connect::',db)
+    if request.method == 'POST':
+        first_name = request.form.get('l_ffname')
+        print(first_name)
+        last_name = request.form.get('l_llname')
+        print(last_name)
+        email = request.form.get('emailll')
+        print(email)
+        phn = request.form.get('l_contact')
+        print(phn)
+
+        if email_exists(db, email):
+            flash('Email already exists.', category='error')
+            return render_template("su_borrower.html")
+
+        try:
+            cursor = db.cursor()
+            cursor.execute("INSERT INTO borrower_list (first_name, last_name, phone_number, email) VALUES (%s, %s, %s, %s)",
+                        (first_name, last_name, phn, email))
+            print('insert: ', cursor)
+            db.commit()
+
+            qr_data = f"{first_name} {last_name}"
+            qr_data_encoded = qr_data.encode('utf-8')
+            qr_image_base64, qr_image_path = current_app.generate_qr_code1(qr_data_encoded, qr_data)
+
+            flash('Account created successfully!', category='success')
+            # return jsonify({'success': True, 'qr_image_base64': qr_image_base64, 'image_path': qr_image_path, 'qrCodeID': qr_data})
+            return render_template("su_borrower.html", qr_image_base64=qr_image_base64)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            db.rollback()
+            return jsonify({'success': False, 'error': 'Database error'})
+
+    return render_template("su_borrower.html", qr_image_base64=None)
+
+def email_exists(db, email):
+    cursor = db.cursor()
+    cursor.execute("SELECT COUNT(*) FROM borrower_list WHERE email = %s", (email,))
+    count = cursor.fetchone()[0]
+    return count > 0
+
+
+
 @auth.route('/create_librarian', methods=['GET', 'POST'])
-def create_acc():
+@admin_required
+def create_librarian():
     db = current_app.get_db()
     if request.method == 'POST':
-        first_name = request.form.get('f_signup')
-        last_name = request.form.get('l_signup')
-        email = request.form.get('l_email1')
-        phn = request.form.get('contact')
-        usrnm = request.form.get('u_signup')
-        password1 = request.form.get('password1')
-        password2 = request.form.get('password2')
+        first_name = request.form.get('l_ffname')
+        last_name = request.form.get('l_llname')
+        email = request.form.get('emailll')
+        phn = request.form.get('l_contact')
+        usrnm = request.form.get('l_usrnm')
+        role = request.form.get('role')
+        password1 = request.form.get('lib_pass1')
+        password2 = request.form.get('lib_pass2')
+        print(first_name)
+        print(last_name)
+        print(email)
+        print(phn)
+        print(usrnm)
 
-        cursor = db.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-        user = cursor.fetchone()
+        try:
+            cursor = db.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM accounts_info WHERE email = %s", (email,))
+            user = cursor.fetchone()
+            print(user)
 
-        if user:
-            flash('Email already exists.', category='error')
-        elif len(email) < 4:
-            flash('Email must be greater than 3 characters.', category='error')
-        elif len(first_name) < 2:
-            flash('Name must be greater than 1 character.', category='error')
-        elif password1 != password2:
-            flash('Passwords don\'t match.', category='error')
-        elif len(password1) < 7:
-            flash('Password must be at least 7 characters.', category='error')
-        else:
-            hashed_password = generate_password_hash(password1, method='sha256')
-            cursor.execute("INSERT INTO users (first_name, last_name, email, phn_num, username, password) VALUES (%s, %s, %s, %s, %s, %s)",
-                           (first_name, last_name, email, phn, hashed_password))
-            db.commit()
-            flash('Account created!', category='success')
-            return redirect(url_for('views.home'))
+            if user:
+                flash('Email already exists.', category='error')
+            # elif email is None or len(email) < 4:
+            #     flash('Email must be greater than 3 characters.', category='error')
+            elif len(first_name) < 2:
+                flash('Name must be greater than 1 character.', category='error')
+            elif password1 != password2:
+                flash('Passwords don\'t match.', category='error')
+            elif len(password1) < 7:
+                flash('Password must be at least 7 characters.', category='error')
+            else:
+                hashed_password = hashlib.sha256(password1.encode('utf-8')).hexdigest()
+                cursor.execute("INSERT INTO accounts_info (first_name, last_name, email, phn_num, username, password, role) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                            (first_name, last_name, email, phn, usrnm, hashed_password, role))
+                usr_id = cursor.lastrowid
+                print(usr_id)
+                cursor.execute("INSERT INTO userss (email, username, password) VALUES (%s, %s, %s)",
+                            (email, usrnm, hashed_password))
+                cursor.execute("INSERT INTO user_roles (user_id, role_id) VALUES ( %s, %s)",
+                            (usr_id, 2))
 
-        cursor.close()
+                db.commit()
 
-    return render_template("create_acc.html")
+                qr_data = f"{usrnm}"
+                qr_data_encoded = qr_data.encode('utf-8')
+                qr_image_base64, qr_image_path = current_app.generate_qr_code2(qr_data_encoded, qr_data)
+                flash('Account created!', category='success')
+                # return jsonify({'success': True, 'qr_image_base64': qr_image_base64, 'image_path': qr_image_path, 'qrCodeID': qr_data})
+                return render_template("create_librarian.html")
+            cursor.close()
+
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            db.rollback()
+            return jsonify({'success': False, 'error': 'Database error'})
+    return render_template("create_librarian.html")
 
 
 @auth.route('/profile')
-# @both_required
+@both_required
 def profile():
     # if 'id' not in session:
     #     return "Unauthorized access"  # Unauthorized access
-    
-    # db = current_app.get_db()
-    # user_id = session['id']
-    # cursor = db.cursor()
-    
-    # # Fetch user data from the database
-    # cursor.execute("SELECT username, email, phn_num, role FROM accounts_info WHERE id = %s", (user_id,))
-    # user = cursor.fetchone()
-    # print(user)
-    
-    # cursor.close()
-    
-    # if user is None:
-    #     return "user not found"  # User not found
-    return render_template('profile.html')
+
+    db = current_app.get_db()
+    user_id = session['id']
+    cursor = db.cursor()
+
+    # Fetch user data from the database
+    cursor.execute("SELECT username FROM accounts_info WHERE id = %s", (user_id,))
+    user = cursor.fetchone()[0]
+    print(user)
+
+    cursor.close()
+
+    if user is None:
+        return "User not found"  # User not found
+
+    # Generate a QR code for the user data
+    user_data = f"{user}"
+    print(user_data)
+    qr_data_encoded = user_data.encode('utf-8')
+    qr_code_image, qr_image_path = current_app.generate_qr_code3(qr_data_encoded, user_data)
+
+    # Pass data to the template
+    return render_template('profile.html', user_data=user_data, qr_code_image=qr_code_image, qr_image_path=qr_image_path)
 
 
 @auth.route('/borrowers_list')
-# @both_required
+@both_required
 def borrowers():
     try:
         db = current_app.get_db()
         cursor = db.cursor()
-        print(f'cursor: {cursor}')
+        search_query = request.args.get('search_query')
 
-        cursor.execute('SELECT COALESCE(first_name, last_name) AS Full_Name, phone_number, email FROM borrower_list')
-        data = cursor.fetchall()
-        print('data: ', data)
+        base_query = 'SELECT CONCAT_WS(" ", `first_name`, `last_name`) AS `Full_Name`, `phone_number`, `email` FROM `borrower_list`'
+
+        # Check if a search query is provided and append a WHERE clause accordingly
+        if search_query:
+            search_query = f"%{search_query}%"  # Add wildcard characters for a partial search
+            query = f"{base_query} WHERE `first_name` LIKE %s OR `last_name` LIKE %s OR `phone_number` LIKE %s OR `email` LIKE %s"
+
+            # Execute the query with the search parameters
+            cursor.execute(query, (search_query, search_query, search_query, search_query))
+        else:
+            # Execute the query without search parameters
+            cursor.execute(base_query)
+
+        data = [{'Full_Name': row[0], 'phone_number': row[1], 'email': row[2]} for row in cursor.fetchall()]
+        print(data)
 
         return render_template('borrowers.html', data=data)
     except Exception as e:
         print("Exception:", e)
         return jsonify({'error': 'An error occurred during data retrieval'})
 
-
 @auth.route('/borrowed_record')
+@both_required
 def borrowed_record():
     try:
         db = current_app.get_db()
         cursor = db.cursor()
-        
-        query = "SELECT * FROM bb_rec"
-        cursor.execute(query,)
-        data = cursor.fetchall()
-        
 
-        return render_template('borrowed.html', data=data)
+        query = "SELECT book_id, staff_librarian, borrower, date_borrowed, date_return, status FROM borrowed_books"
+        cursor.execute(query)
+
+        # Fetch the data as dictionaries
+        data = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+        print(data)
+
+        filtered_data = data
+
+        search_query = request.args.get('search_query')
+        if search_query:
+            search_query = f"%{search_query}%"  # Add wildcard characters for a partial search
+            filtered_data = [item for item in filtered_data if
+                             search_query in item['staff_librarian'].lower() or
+                             search_query in item['status'].lower() or
+                             search_query in item['borrower'].lower() or
+                             search_query in item['date_borrowed'].lower() or
+                             search_query in item['date_return'].lower()]
+
+        return render_template('borrowed.html', data=filtered_data)
+
     except Exception as e:
         print("Exception:", e)
         return jsonify({'error': 'An error occurred during data retrieval'})
-    
-@auth.route('/borrower_list/<full_name>')
-def generate_qr(full_name):
+
+@auth.route('/books_inserted')
+@both_required
+def books_inserted():
+    db = current_app.get_db()
+    cursor = db.cursor()
+    search_query = request.args.get('search_query')
+
+    query = "SELECT book_loc, category, isbn, title, publisher, year_published, librarian, role, time_inserted FROM insert_record"
+    cursor.execute(query)
+    data = [{'book_loc': row[0], 'category': row[1], 'isbn': row[2], 'title': row[3], 'publisher':row[4], 'year_published':row[5], 'librarian':row[6], 'role':row[7], 'time_inserted':row[8]} for row in cursor.fetchall()]
+    print(data)
+
+    filtered_data = data
+
+    if search_query:
+        search_query = f"%{search_query}%"
+        filtered_data = [item for item in filtered_data if
+                        search_query in str(item['book_loc']).lower() or
+                        search_query in str(item['category']).lower() or
+                        search_query in str(item['title']).lower() or
+                        search_query in str(item['publisher']).lower() or
+                        search_query in str(item['year_published']).lower() or
+                        search_query in str(item['librarian']).lower()]
+
+    return render_template('insert_record.html', data=filtered_data)
+
+
+@auth.route('/borrower_list/<Full_Name>')
+@admin_required
+def generate_qr(Full_Name):
     # Create a QR code with the full name
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
         border=0,
     )
-    qr.add_data(full_name)
+    qr.add_data(Full_Name)
     qr.make(fit=True)
 
     # Create an image from the QR code
@@ -291,13 +452,13 @@ def generate_qr(full_name):
 
     # Create a Flask response containing the image
     response = make_response(send_file(img_stream, mimetype='image/png'))
-    response.headers['Content-Disposition'] = f'inline; filename={full_name}_qr.png'
+    response.headers['Content-Disposition'] = f'inline; filename={Full_Name}_qr.png'
 
     return response
 
 
 @auth.route('/inventory')
-# @both_required
+@both_required
 def inventory():
     try:
         db = current_app.get_db()
@@ -305,6 +466,7 @@ def inventory():
 
         cursor.execute('SELECT * FROM categories')
         category_name = cursor.fetchall()
+        print(category_name)
 
         cursor.execute('SELECT * FROM shelves')
         shelf_num = cursor.fetchall()
@@ -313,8 +475,10 @@ def inventory():
         gen_books = cursor.fetchall()
 
         shelf = request.args.get('shelf_id')
-        category = request.args.get('catalog')
+        category = request.args.get('cate_id')
         search_query = request.args.get('search_query')
+        print('shelf:', shelf)
+        print('category:', category)
 
         columns = []
 
@@ -322,42 +486,44 @@ def inventory():
             return render_template('inventory.html', category_name=category_name, shelf_num=shelf_num, gen_books=gen_books, columns=columns)
 
         if category == 'all' and shelf == 'all':
-            query = "SELECT book_id, category, isbn, title, publisher, year_published, quantity, availability FROM gen_books"
+            query = "SELECT book_loc, category, isbn, title, author, publisher, year_published, quantity, availability FROM gen_books"
             cursor.execute(query)
         elif category == 'all':
-            query = f"SELECT book_id, category, isbn, title, publisher, year_published FROM {shelf}"
+            query = f"SELECT book_loc, category, isbn, title, author, publisher, year_published FROM {shelf}"
             cursor.execute(query)
         elif shelf == 'all':
-            query = f"SELECT book_id, category, isbn, title, publisher, year_published FROM gen_books WHERE category = %s"
+            query = "SELECT book_loc, category, isbn, title, author, publisher, year_published, quantity, availability FROM gen_books WHERE category = %s"
             cursor.execute(query, (category,))
+
         else:
-            query = f"SELECT book_id, category, isbn, title, publisher, year_published FROM {shelf} WHERE category = %s"
+            query = f"SELECT book_loc, category, isbn, title, author, publisher, year_published FROM {shelf} WHERE category = %s"
             cursor.execute(query, (category,))
 
         data = cursor.fetchall()
-
+        print('data:',  data)
         data_list = []
 
         for row in data:
             if shelf == "all":
                 data_item = {
-                    'book_id': row[0],
+                    'book_loc': row[0],
                     'category': row[1],
                     'isbn': row[2],
                     'title': row[3],
-                    'publisher': row[4],
-                    'year_published': row[5],
-                    'quantity': row[6],
-                    'availability': row[7]
+                    'author': row[4],
+                    'publisher': row[5],
+                    'year_published': row[6],
+                    'quantity': row[7],
                 }
             else:
                 data_item = {
-                    'book_id': row[0],
+                    'book_loc': row[0],
                     'category': row[1],
                     'isbn': row[2],
                     'title': row[3],
-                    'publisher': row[4],
-                    'year_published': row[5]
+                    'author': row[4],
+                    'publisher': row[5],
+                    'year_published': row[6]
                 }
 
             data_list.append(data_item)
@@ -367,15 +533,16 @@ def inventory():
         if search_query:
             search_query = f"%{search_query}%"  # Add wildcard characters for a partial search
             filtered_data = [item for item in data_list if
-                             search_query in item['title'].lower() or search_query in item['publisher'].lower()]
+                             search_query in item['category'].lower() or search_query in item['isbn'].lower() or search_query in item['title'].lower() or search_query in item['author'].lower() or search_query in item['publisher'].lower() or search_query in item['year_published'].lower()]
 
         return jsonify(filtered_data)
 
     except Exception as e:
         print("Exception:", e)
         return jsonify({'error': 'An error occurred during data retrieval'})
-    
+
 @auth.route('/<shelf>/<row>', methods=['GET','POST'])
+# @admin_required
 def shelf_row(shelf, row):
 
     try:
@@ -384,7 +551,7 @@ def shelf_row(shelf, row):
         print(f'cursor: {cursor}')
 
         query = f"SELECT book_loc FROM {shelf} WHERE book_row = %s"
-        cursor.execute(query,(row,))  
+        cursor.execute(query,(row,))
         result = cursor.fetchall()
 
         book_locs = [item[0] for item in result]
@@ -403,7 +570,7 @@ def shelf_row(shelf, row):
 def per_shelf(shelf):
     shelf = request.args.get('shelf_id')
     print("Selected shelf:", shelf)
-    category = request.args.get('catalog')
+    category = request.args.get('cate_l')
     print("Category:", category)
     search_query = request.args.get('search_query')
     print("Search:", search_query)
@@ -431,38 +598,38 @@ def per_shelf(shelf):
         return jsonify({'error': str(err)})
 
 
-@auth.route('/forgot_pass', methods=['GET', 'POST'])
-def forgot_pass():
+@auth.route('/reset_pass', methods=['GET', 'POST'])
+@both_required
+def reset_pass():
+    print("Reset pass route called!")
+    print(session)
     if request.method == 'POST':
-        email = request.form['fp_email']
+        print('post')
+        if 'email' in session:
+            email_from_session = session['email']
+            entered_email = request.form['l_email']
+            print('emailfromsession: ', email_from_session)
+            print('email: ',entered_email)
 
-        # Get database connection
-        db = current_app.get_db()
-        cursor = db.cursor()
-
-        # Check if the user exists in the database
-        cursor.execute('SELECT * FROM accounts_info WHERE email = %s', (email,))  # Replace 'user_table' with your actual user table name
-        user = cursor.fetchone()
-
-        if not user:
-            flash('No account found with that email address.', 'error')
-            return render_template('forgot_password.html')
-
-        with current_app.app_context():
-            s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-            token = s.dumps(email, salt=current_app.config['SECURITY_PASSWORD_SALT'])
-
-            try:
-                msg = Message('Password Reset Request',
-                              sender=current_app.config['MAIL_DEFAULT_SENDER'],
-                              recipients=[email])
-                link = url_for('auth.reset_token', token=token, _external=True)
-                msg.body = f'Your link to reset your password is {link}'
-                current_app.mail.send(msg)
-            except Exception as e:
-                current_app.logger.error(f'Error sending email: {e}')
-                flash('An error occurred while sending the reset email. Please try again.', 'error')
+            # Check if the entered email matches the one in the session
+            if email_from_session != entered_email:
+                flash('Please enter the email associated with your account.', 'error')
                 return render_template('forgot_password.html')
+            with current_app.app_context():
+                s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+                token = s.dumps(email_from_session, salt=current_app.config['SECURITY_PASSWORD_SALT'])
+
+                try:
+                    msg = Message('Password Reset Request',
+                                  sender=current_app.config['MAIL_DEFAULT_SENDER'],
+                                  recipients=[email_from_session])
+                    link = url_for('auth.reset_token', token=token, _external=True)
+                    msg.body = f'Your link to reset your password is {link}'
+                    current_app.mail.send(msg)
+                except Exception as e:
+                    current_app.logger.error(f'Error sending email: {e}')
+                    flash('An error occurred while sending the reset email. Please try again.', 'error')
+                    return "error"
 
             flash('A password reset email has been sent if the email is registered.', 'success')
             return render_template('check_email.html')
@@ -470,10 +637,11 @@ def forgot_pass():
     return render_template('forgot_password.html')
 
 @auth.route('/reset/<token>', methods=['GET', 'POST'])
+@both_required
 def reset_token(token):
     db = current_app.get_db()
-    cursor = db.cursor()
     try:
+        cursor = db.cursor()
         with current_app.app_context():
             s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
             email = s.loads(token, salt=current_app.config['SECURITY_PASSWORD_SALT'], max_age=3600)
@@ -489,7 +657,7 @@ def reset_token(token):
                     return redirect(url_for('auth.reset_token', token=token))
 
                 # Set the new password and save to the database
-                hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+                hashed_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
                 print(hashed_password)
                 cursor.execute("UPDATE accounts_info SET password = %s WHERE email = %s", (hashed_password, email))
                 cursor.execute("UPDATE userss SET password = %s WHERE email = %s", (hashed_password, email))
@@ -497,23 +665,56 @@ def reset_token(token):
                 print(db)
 
                 flash('Password reset successfully. You can now log in with your new password.', 'success')
-                return redirect(url_for('auth.login'))
+                return redirect(url_for('auth.home'))
 
     except SignatureExpired:
         flash('The token is expired!', 'error')
         return redirect(url_for('auth.forgot_pass'))
-    except Exception as e:
-        flash('Invalid or expired token.', 'error')
-        return redirect(url_for('auth.forgot_pass'))
+
 
     return render_template('reset_token.html', token=token)
 
 
 @auth.route('/qr_codes/<image_id>')
+@both_required
 def qr_codes(image_id):
     try:
         image_path = f"Webapp/static/qr_codes/{image_id}.png"
-        with open(image_path, "rb") as image_file:  
+        with open(image_path, "rb") as image_file:
+            response = Response(image_file.read(), content_type="image/png")
+            return response
+    except FileNotFoundError:
+        return "Image not found", 404
+
+
+@auth.route('/qr_usr/<image_id>')
+@both_required
+def qr_usr(image_id):
+    try:
+        image_path = f"Webapp/static/qr_usr/{image_id}.png"
+        with open(image_path, "rb") as image_file:
+            response = Response(image_file.read(), content_type="image/png")
+            return response
+    except FileNotFoundError:
+        return "Image not found", 404
+
+@auth.route('/qr_lib/<image_id>')
+@admin_required
+def qr_lib(image_id):
+    try:
+        image_path = f"Webapp/static/qr_lib/{image_id}.png"
+        with open(image_path, "rb") as image_file:
+            response = Response(image_file.read(), content_type="image/png")
+            return response
+    except FileNotFoundError:
+        return "Image not found", 404
+
+@auth.route('/qr_login/<image_id>')
+@admin_required
+def qr_login(image_id):
+    try:
+        image_path = f"Webapp/static/qr_login/{image_id}.png"
+        with open(image_path, "rb") as image_file:
             response = Response(image_file.read(), content_type="image/png")
             return response
     except FileNotFoundError:
@@ -521,20 +722,21 @@ def qr_codes(image_id):
 
 
 
+
+
 @auth.route('/insert', methods=['GET', 'POST'])
-# @both_required
+@al_required
 def insert():
     db = current_app.get_db()
     cursor = db.cursor()
-    cursor1 = db.cursor()
-    cursor2 = db.cursor()
     cursor.execute('SELECT * FROM categories')
     category_name = cursor.fetchall()
     print(category_name)
-    cursor1.execute('SELECT * FROM shelves')
-    shelf = cursor1.fetchall()
-    cursor2.execute('SELECT * FROM book_row')
-    b_rows = cursor2.fetchall()
+    cursor.execute('SELECT * FROM shelves')
+    shelf = cursor.fetchall()
+    cursor.execute('SELECT * FROM book_row')
+    b_rows = cursor.fetchall()
+    cursor.execute("SET time_zone = '+08:00';")
 
     if request.method == "POST":
         table = request.form.get('b_shelves')
@@ -565,74 +767,92 @@ def insert():
             c_id = cursor.fetchone()[0]
             print('category_id: ', c_id)
 
-            query = "INSERT INTO gen_books (book_row, category, isbn, title, publisher, year_published, quantity) VALUES (%s, %s, %s, %s, %s, %s, 1)"
-            cursor.execute(query, (num_row, cate, isbn, title, publisher, year))
-            s_id = cursor.lastrowid
+            query_existing_book = "SELECT id, quantity FROM gen_books WHERE title = %s"
+            cursor.execute(query_existing_book, (title,))
+            existing_book = cursor.fetchone()
+            print('inventor_record: ', existing_book)
 
-            query1 = f"INSERT INTO {table} (book_row, category, isbn, title, publisher, year_published) VALUES (%s, %s, %s, %s, %s, %s)"
-            cursor.execute(query1, (num_row, cate, isbn, title, publisher, year))
-            s_id1 = cursor.lastrowid
+            if existing_book:
+                # Book already exists, update the quantity
+                existing_id, existing_quantity = existing_book
+                new_quantity = existing_quantity + 1
+                print(new_quantity)
 
-            query2 = "INSERT INTO insert_record (book_row, category, isbn, title, publisher, year_published, librarian, role) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-            cursor.execute(query2, (num_row, cate, isbn, title, publisher, year, username, role))
-            s_id2 = cursor.lastrowid
+                cursor.fetchall()
 
-            p_id = f"{shelf_value}{num_row}"
-            cat_id = f"{c_id}{s_id}"
-            cat_id1 = f"{c_id}{s_id1}"
-            bookloc_data = f"{p_id} {cat_id1}"
-            query3 = "UPDATE gen_books SET book_id = %s, categ_id = %s, book_loc = %s WHERE id = %s"
-            cursor.execute(query3, (p_id, cat_id, bookloc_data, s_id))
-            print(query3)
+                # Update the quantity in the gen_books table
+                query_update_quantity = "UPDATE gen_books SET quantity = %s WHERE id = %s"
+                cursor.execute(query_update_quantity, (new_quantity, existing_id))
+                print(query_update_quantity)
 
-            p_id1 = f"{shelf_value}{num_row}"
-           
-    
+                flash('Existing book found. Quantity updated!', 'success')
+            else:
+                # Book doesn't exist, insert a new record
+                query_insert_gen_books = "INSERT INTO gen_books (book_row, category, isbn, title, publisher, year_published, quantity, availability) VALUES (%s, %s, %s, %s, %s, %s, 1, 'available')"
+                cursor.execute(query_insert_gen_books, (num_row, cate, isbn, title, publisher, year))
+                s_id = cursor.lastrowid
 
-            query4 = f"UPDATE {table} SET book_id = %s, categ_id = %s, book_loc = %s WHERE id = %s"
-            cursor.execute(query4, (p_id1, cat_id1, bookloc_data, s_id1))
-            print(query4)
+                query_insert_table = f"INSERT INTO {table} (book_row, category, isbn, title, publisher, year_published) VALUES (%s, %s, %s, %s, %s, %s)"
+                cursor.execute(query_insert_table, (num_row, cate, isbn, title, publisher, year))
+                s_id1 = cursor.lastrowid
 
-            p_id2 = f"{shelf_value}{num_row}"
-            cat_id2 = f"{c_id}{s_id2}"
-        
+                query_insert_record = "INSERT INTO insert_record (book_row, category, isbn, title, publisher, year_published, librarian, role, time_inserted) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())"
+                cursor.execute(query_insert_record, (num_row, cate, isbn, title, publisher, year, username, role))
+                s_id2 = cursor.lastrowid
 
-            query5 = "UPDATE insert_record SET book_id = %s, categ_id = %s, book_loc = %s WHERE id = %s"
-            cursor.execute(query5, (p_id2, cat_id2, bookloc_data, s_id2))
-            print('insert record: ',query5)
+                p_id = f"{shelf_value}{num_row}"
+                cat_id = f"{c_id}{s_id}"
+                cat_id1 = f"{c_id}{s_id1}"
+                bookloc_data = f"{p_id} {cat_id1}"
+                query_update_gen_books = "UPDATE gen_books SET book_id = %s, categ_id = %s, book_loc = %s WHERE id = %s"
+                cursor.execute(query_update_gen_books, (p_id, cat_id, bookloc_data, s_id))
+                print(query_update_gen_books)
+
+                p_id1 = f"{shelf_value}{num_row}"
+                query_update_table = f"UPDATE {table} SET book_id = %s, categ_id = %s, book_loc = %s WHERE id = %s"
+                cursor.execute(query_update_table, (p_id1, cat_id1, bookloc_data, s_id1))
+                print(query_update_table)
+
+                p_id2 = f"{shelf_value}{num_row}"
+                cat_id2 = f"{c_id}{s_id2}"
+                query_update_record = "UPDATE insert_record SET book_id = %s, categ_id = %s, book_loc = %s WHERE id = %s"
+                cursor.execute(query_update_record, (p_id2, cat_id2, bookloc_data, s_id2))
+                print('insert record: ', query_update_record)
+
+                cursor.execute("SELECT id, quantity FROM gen_books WHERE book_id = %s", (p_id,))
+                inventory_record = cursor.fetchall()
+                print('inventory_record: ', inventory_record)
+
+                qr_data = f"{p_id} {cat_id1}"
+                print(qr_data)
+                qr_data_encoded = qr_data.encode('utf-8')
+                print(qr_data_encoded)
+                qr_image_base64, image_path = current_app.generate_qr_code(qr_data_encoded, str(qr_data))
+
+                flash('Data successfully inserted!', 'success')
+                db.commit()
+                return jsonify({'success': True, 'qr_image_base64': qr_image_base64, 'image_path': image_path, 'qrCodeID': qr_data})
 
             db.commit()
 
-            cursor.execute("SELECT id, quantity FROM gen_books WHERE book_id = %s", (p_id,))
-            inventory_record = cursor.fetchall()
-            print('inventor_record: ', inventory_record)
-
-            qr_data = f"{p_id} {cat_id1}"
-            print(qr_data)
-            qr_data_encoded = qr_data.encode('utf-8')
-            print(qr_data_encoded)
-            qr_image_base64, image_path = current_app.generate_qr_code(qr_data_encoded, str(qr_data))
-
-            cursor.close()
-            db.close()
-
-            flash('Data successfully inserted!', 'success')
-
-            return jsonify({'success': True, 'qr_image_base64': qr_image_base64, 'image_path': image_path, 'qrCodeID': qr_data})
 
         except Exception as e:
             print("Exception:", e)
             db.rollback()
-            cursor.close()
-            db.close()
-
             flash('Error inserting data into the database', 'error')
             return jsonify({'success': False, 'error': 'Error inserting data into the database'})
+
+        finally:
+            cursor.close()
+            db.close()
 
     return render_template("insert.html", qr_image_base64=None, category_name=category_name, shelf=shelf, b_rows=b_rows)
 
 
+
+
 @auth.route('/log_cred')
+@both_required
 def log_cred():
     db = current_app.get_db()
     cursor = db.cursor()

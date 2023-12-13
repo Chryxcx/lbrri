@@ -1,28 +1,22 @@
 {% extends "base.html" %} {% block title %}Reset{% endblock %}
 {% block content %}
-<div class="container">
-    <h2>Reset Password</h2>
-
-    <!-- Display any flashed messages from Flask -->
-    {% for message in get_flashed_messages() %}
-        <div class="alert alert-warning">
-            {{ message }}
+<form action="{{ url_for('auth.reset_token', token=token) }}" method="POST" class="rect2-14">
+<div class="center4" id="rect9">
+    <h1>Reset Password</h1>
+    <h2>Enter a new password</h2>
+        <div class="txt_field1">
+            <input type="password" id="password" name="password" required>
+            <span></span>
+            <label>New Password:</label>
         </div>
-    {% endfor %}
+        <div class="txt_field1">
+            <input type="password" id="confirm_password" name="confirm_password" required>
+            <span></span>
+            <label>Confirm New Password:</label>
 
-    <!-- Password Reset Form -->
-    <form action="{{ url_for('auth.reset_token', token=token) }}" method="post">
-        {{ csrf_token() }}
-        <div class="form-group">
-            <label for="password">New Password:</label>
-            <input type="password" class="form-control" id="password" name="password" required>
-        </div>
-        <div class="form-group">
-            <label for="confirm_password">Confirm New Password:</label>
-            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         </div>
-        <button type="submit" class="btn btn-primary">Reset Password</button>
+        <div class="send3"><button type="submit">Reset Password</button></div>
     </form>
 </div>
 {% endblock %}

@@ -2,49 +2,36 @@
 {% block title %}Create Account{% endblock %}
 {% block content %}
 
-<link rel="stylesheet" type="text/css"  href="design.css">
-  <body>
-    <div class="center">
-      <h1>Create Account for Borrower</h1>
-      <form method="post" id="signup-form">
-        <div class="txt_field" name=" l_signup">
-          <input type="name" required>
+<link rel="stylesheet" type="text/css"  href="create_brrwr.css">
+ <form method="post" id="signup-form" action="{{ url_for('auth.create_borrower') }}" class="rect2-11">
+    <div class="container" id=rect5>
+      <h1 class="header3">Create Account for Borrower</h1>
+        <div class="txt_field3" >
+          <input type="text" name="l_ffname" autocomplete="off" required>
           <span></span>
-          <label>Name</label>
+          <label>First Name</label>
         </div>
-        <div class="txt_field" name="l_email1"> 
-          <input type="email1" required>
+        <div class="txt_field3" >
+            <input type="text" name="l_llname" autocomplete="off" required>
+            <span></span>
+            <label>Last Name</label>
+        </div>
+        <div class="txt_field3" >
+          <input type="email" name="emailll" autocomplete="off" required>
           <span></span>
           <label>Email</label>
         </div>
-        <div class="txt_field" name="l_contact"> 
-            <input type="contact" required>
+        <div class="txt_field3" >
+            <input type="tel" name="l_contact" pattern="[0]{1}[9]{1}[0-9]{9}" required>
             <span></span>
-            <label>Contact Number</label>
+            <label>Mobile Number<small class="small">(Format: 09*********)</small></label>
+
         </div>
-        <div class="input-group3" name="l_birthdate"> 
-            <label>Birthdate</label>
-            <input type="date" required>
-            <span></span>
-        </div>
-        <div class="gender-box">
-          <h3>Gender</h3>`
-          <div class="gender-option">
-            <div class="gender1">
-              <input type="radio" id="check-male" name="gender" checked />
-              <label for="check-male">Male</label>
-            </div>
-            <div class="gender2">
-              <input type="radio" id="check-female" name="gender" />
-              <label for="check-female">Female</label>
-            </div>
-          </div>
-        </div>
-    
-        <div><input class="create" type="submit" value="Create"></div>
-      
-      </form>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+
+        <div class="create3"><button  type="submit">Create</div>
     </div>
 
-  </body>
+</form>
 {% endblock %}

@@ -1,10 +1,8 @@
-from flask import Flask, session, g
+from flask import Flask
 from flask_wtf import CSRFProtect
 import mysql.connector
 from flask_mail import Mail
-from flask_login import LoginManager, UserMixin
 from flask_bootstrap import Bootstrap
-from flask_bcrypt import Bcrypt
 import qrcode
 from io import BytesIO
 import base64
@@ -31,14 +29,11 @@ def create_app():
     app.config['MAIL_USE_SSL'] = True
 
     # Initialize extensions
-    bcrypt = Bcrypt(app)
     csrf = CSRFProtect(app)
     Bootstrap(app)
     mail = Mail(app)
 
     # Store instances in the app for easy access
-    app.csrf = csrf
-    app.bcrypt = bcrypt
     app.mail = mail
     
 
@@ -73,7 +68,70 @@ def create_app():
         img_base64 = base64.b64encode(img_stream.getvalue()).decode()
         return img_base64, image_path
     
-    app.generate_qr_code = generate_qr_code 
+    app.generate_qr_code = generate_qr_code
+
+    def generate_qr_code1(data, filename):
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            border=0,
+        )
+        qr.add_data(data)
+        qr.make(fit=True)
+
+        qr_img = qr.make_image(fill_color="black", back_color="white")
+        img_stream = BytesIO()
+        qr_img.save(img_stream, format="PNG")
+        img_stream.seek(0)
+        image_path = f"Webapp/static/qr_usr/{filename}.png"
+        with open(image_path, "wb") as image_file:
+            image_file.write(img_stream.read())
+        img_base64 = base64.b64encode(img_stream.getvalue()).decode()
+        return img_base64, image_path
+    
+    app.generate_qr_code1 = generate_qr_code1 
+
+    def generate_qr_code2(data, filename):
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            border=0,
+        )
+        qr.add_data(data)
+        qr.make(fit=True)
+
+        qr_img = qr.make_image(fill_color="black", back_color="white")
+        img_stream = BytesIO()
+        qr_img.save(img_stream, format="PNG")
+        img_stream.seek(0)
+        image_path = f"Webapp/static/qr_lib/{filename}.png"
+        with open(image_path, "wb") as image_file:
+            image_file.write(img_stream.read())
+        img_base64 = base64.b64encode(img_stream.getvalue()).decode()
+        return img_base64, image_path
+    
+    app.generate_qr_code2 = generate_qr_code2 
+
+    def generate_qr_code3(data, filename):
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            border=0,
+        )
+        qr.add_data(data)
+        qr.make(fit=True)
+
+        qr_img = qr.make_image(fill_color="black", back_color="white")
+        img_stream = BytesIO()
+        qr_img.save(img_stream, format="PNG")
+        img_stream.seek(0)
+        image_path = f"Webapp/static/qr_login/{filename}.png"
+        with open(image_path, "wb") as image_file:
+            image_file.write(img_stream.read())
+        img_base64 = base64.b64encode(img_stream.getvalue()).decode()
+        return img_base64, image_path
+    
+    app.generate_qr_code3 = generate_qr_code3 
     
     
     
@@ -81,7 +139,7 @@ def create_app():
     from .auth import auth
     
     app.register_blueprint(view,url_prefix='/')
-    app.register_blueprint(auth,url_prefix='/')\
+    app.register_blueprint(auth,url_prefix='/')
     
     
 

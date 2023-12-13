@@ -1,23 +1,24 @@
-{% extends "base.html" %} {% block title %}Insert Record{% endblock %} 
+{% extends "base.html" %} {% block title %}Insert Record{% endblock %}
 
 {% block content %}
 <link rel="stylesheet" type="text/css" href="{{ url_for('auth.static', filename='insert_record.css') }}">
-<form id="inserted-form">
+<form id="inserted-form" class="rect2-7">
     <div>
         <div>
-            <h1 class="head"><a class="c"  href="/" id="log">Members Info</h1>
+            <h1>Books Inserted</h1>
         </div>
-        
+
         <div>
-            <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" id="search_query"
+            <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" id="search_query4"
                 name="search_query" autocomplete="off">
         </div>
-        <div id="rect4" class="table-responsive-lg">
+        <div id="rect4-6" class="table-responsive-lg">
             <table class="table table-hover table-sm table-borderless align-middle">
                 <thead>
                     <tr>
                         <!-- <th scope="col">#</th> -->
-                        <th scope="col">Book ID</th>
+                        <th scope="col">QR Code</th>
+                        <th scope="col">Location</th>
                         <th scope="col">Category</th>
                         <th scope="col">ISBN</th>
                         <th scope="col">Title</th>>
@@ -29,18 +30,77 @@
                     </tr>
                 </thead>
                 <tbody id="table-body">
-                    <!-- {% for qr_code_data in qr_code_data_list %}
-                        <tr class="qr-row" data-toggle="modal" data-qr-code="/qr_codes/{{ qr_code_data.qrcode }}">
-                            {% for column in columns %}
-                                <td>{{ qr_code_data[column.lower()] }}</td>
-                            {% endfor %}
+                    {% for item in data %}
+                        <tr class="qr-row" data-toggle="modal" data-qr-code="/qr_codes/{{ item['book_loc'] }}">
+                            <td>
+                                <!-- Placeholder for QR code -->
+                                <img src="/qr_codes/{{ item['book_loc'] }}" class="qr-code-size" alt="QR Code">
+                            </td>
+                            <td>{{ item.book_loc }}</td>
+                            <td>{{ item.category }}</td>
+                            <td>{{ item.isbn }}</td>
+                            <td>{{ item.title }}</td>
+                            <td>{{ item.publisher }}</td>
+                            <td>{{ item.year_published }}</td>
+                            <td>{{ item.librarian }}</td>
+                            <td>{{ item.role }}</td>
+                            <td>{{ item.time_inserted }}</td>
                         </tr>
-                    {% endfor %} -->
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
 </form>
 
+<script>
+    document.addEventListener('keydown', function(event) {
+    if (event.keyCode === 13) {
+        event.preventDefault();
+    }
+});
 
-{% endblock }
+    document.getElementById('search_query4').addEventListener('keyup', function(event) {
+        handleSearch();
+    });
+
+    document.getElementById('search_query4').addEventListener('input', function(event) {
+        handleSearch();
+    });
+
+    function handleSearch() {
+        var search_query = document.getElementById('search_query4').value.toLowerCase();
+        var rows = document.querySelectorAll('.qr-row');
+
+        for (var i = 0; i < rows.length; i++) {
+            var match_found = false;
+            var cells = rows[i].getElementsByTagName('td');
+
+            // If the search query is empty, show all rows
+            if (search_query.trim() === '') {
+                rows[i].style.display = '';
+            } else {
+                // Iterate over each cell in the row
+                for (var j = 0; j < cells.length; j++) {
+                    var cell_text = cells[j].innerText.toLowerCase();
+
+                    // Check if the cell contains the search query
+                    if (cell_text.indexOf(search_query) !== -1) {
+                        match_found = true;
+                        break;
+                    }
+                }
+
+                // Show or hide the row based on whether a match was found
+                if (match_found) {
+                    rows[i].style.display = '';
+                } else {
+                    rows[i].style.display = 'none';
+                }
+            }
+        }
+    }
+
+</script>
+
+{% endblock %}

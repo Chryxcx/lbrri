@@ -1,68 +1,65 @@
-    {% extends "base.html" %}
-    {% block title %}Insert{% endblock %}
-    {% block content %}
-        <form method="POST" action="/insert" id="insert-form">
-            <h1 class="h-insert">Insert a Book</h1>
-            <div class="container" id="rect5">
-                <div class="form-group" id="form-insert">
-                    <div class="txt_field">
-                        <input type="text" name="b_title" autocomplete="off" required/>
-                        <span></span>
-                        <label>Title</label>
-                    </div>
-                    <div class="txt_field">
-                        <input type="text" name="b_year" autocomplete="off" required/>
-                        <span></span>
-                        <label >Year Published</label>
-                    </div>
-                    <div class="txt_field">
-                        <input type="text" name="b_publisher" autocomplete="off" required/>
-                        <span></span>
-                        <label >Publisher</label>     
-                    </div>
-                    <div class="txt_field">
-                        <input type="text"  name="isbn" autocomplete="off" required/>
-                        <label for="isbn" >ISBN</label>
-                    </div>
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{% extends "base.html" %}
+{% block title %}Insert{% endblock %}
+{% block content %}
+    <form method="POST" action="/insert" id="insert-form" class="rect2-2">
+        <div class="center1" id="rect7">
+            <h1 class="header2">Insert a Book</h1>
+                <div class="txt_field">
+                    <input type="text" name="b_title" autocomplete="off" required/>
+                    <span></span>
+                    <label>Title</label>
                 </div>
-
-                <div class="form-group" id="dd-group">
-                    <p class="shelf">Shelf:</p>
-                    <label for="shelves"></label>
-                    <select size="1"class="form-select" name="b_shelves" id="shelves">
-                        {% for s in shelf %}
-                            <option value="{{s[1]}}">{{s[0]}}</option>
-                        {% endfor %}
-                    </select>
-                    
-                    
-                    <p class="cats">Category:</p>
-                    <label for="cate"></label>
-                    <select class="form-select" name="b_cate" id="cate">                 
-                        {% for c in category_name %}    
-                        <option value="{{c[1]}}">{{c[1]}}</option>
-                        {% endfor %}
-                    </select>
-
-                    <p class="row">Row:</p>
-                    <label for="row"></label>
-                    <select class="form-select" name="num_row" id="row">                 
-                        {% for n in b_rows %}    
-                        <option value="{{n[1]}}">{{n[1]}}</option>
-                        {% endfor %}
-                    </select>
-                    
-                    
+                <div class="txt_field">
+                    <input type="text" name="b_author" autocomplete="off" required/>
+                    <span></span>
+                    <label>Author</label>
                 </div>
-                <br/>
-                <button type="submit" class="btn btn-success" id="s-button">Submit</button>
-                
+                <div class="txt_field">
+                    <input type="text" name="b_year" maxlength="4" autocomplete="off" required/>
+                    <span></span>
+                    <label >Year Published</label>
+                </div>
+                <div class="txt_field">
+                    <input type="text" name="b_publisher" autocomplete="off" required/>
+                    <span></span>
+                    <label >Publisher</label>
+                </div>
+                <div class="txt_field">
+                    <input type="text"  name="isbn" autocomplete="off" required/>
+                    <label for="isbn">ISBN</label>
+                </div>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div id="dd-group">
+
+                <p class="cats">Category:</p>
+                <label for="cate"></label>
+                <select class="form-select" name="b_cate" id="cate">
+                    {% for c in category_name %}
+                    <option value="{{c[1]}}">{{c[1]}}</option>
+                    {% endfor %}
+                </select>
+
+                <p class="row">Row:</p>
+                <label for="row"></label>
+                <select class="form-select" name="num_row" id="row">
+                    {% for n in b_rows %}
+                    <option value="{{n[0]}}">{{n[0]}}</option>
+                    {% endfor %}
+                </select>
+
+
+            </div>
+            <br/>
+            <div class="s-button">
+            <button type="submit" class="btn btn-success" >Insert</button>
+            </div>
+
                 <div class="qrbox">
                     <div class="form-group" id="qcode">
                         <img src="" alt="QR Code" id="qrImage">
                     </div>
-                    <div>
+                    <div class="buttons">
                         <button type="button" class="btn btn-secondary" id="xsmall">Extra small</button>
                         <button type="button" class="btn btn-secondary" id="small">Small</button>
                         <button type="button" class="btn btn-secondary" id="medium">Medium</button>
@@ -70,11 +67,11 @@
                         <button type="button" class="btn btn-success" id="downloadBtn">Download</button>
                     </div>
                 </div>
-            </div>
-        </form>
-        <script type="text/javascript" src="{{ url_for('auth.static', filename='insert.js') }}"></script>
+        </div>
+    </form>
+    <script type="text/javascript" src="{{ url_for('auth.static', filename='insert.js') }}"></script>
 
-    {% endblock %}
+{% endblock %}
 
 
 

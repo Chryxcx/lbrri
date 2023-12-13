@@ -2,7 +2,12 @@
 
 #newnb{
   text-decoration: none;
-  color: black;
+  color: white;
   font-weight: bold;
   font-size:x-large;
+
+}
+
+.newnbbg{
+  background: #23A40F;
 }

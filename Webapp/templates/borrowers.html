@@ -2,19 +2,19 @@
 {% block title %}Borrowers{% endblock %}
 {% block content %}
 <link rel="stylesheet" type="text/css" href="{{ url_for('auth.static', filename='borrowers.css') }}">
-<form id="Members-form">
+<form id="Members-form" class="rect2-9">
     <div>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div>
-            <h1 class="head"><a class="c" id="log">Members Info</h1>
+            <h1>Borrower's Info</h1>
         </div>
-        
+
         <div>
-            <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" id="search_query"
+            <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" id="search_query3"
                 name="search_query" autocomplete="off">
         </div>
-        <a class="btn bx bx-arrow-back" id="Back" href="/"></a>
-        <div id="rect4" class="table-responsive-lg">
+
+        <div id="rect4-1" class="table-responsive-lg">
             <table class="table table-hover table-sm table-borderless align-middle">
                 <thead>
                     <tr>
@@ -24,13 +24,13 @@
                         <th>Email</th>
                     </tr>
                 </thead>
-                <tbody> 
+                <tbody>
                     {% if data %}
                         {% for row in data %}
-                            <tr>
+                            <tr class="qr-row"  data-qr-code="/qr_usr/{{ row['Full_Name'] }}">
                                 <td>
                                     <!-- Placeholder for QR code -->
-                                    <img src="{{ url_for('auth.generate_qr', full_name=row['Full_Name']) }}" alt="QR Code">
+                                    <img src="/qr_usr/{{ row['Full_Name'] }}" class="qr-code-size" alt="QR Code">
                                 </td>
                                 <td>{{ row['Full_Name'] }}</td>
                                 <td>{{ row['phone_number'] }}</td>
@@ -47,4 +47,52 @@
         </div>
     </div>
 </form>
+<script>
+document.addEventListener('keydown', function(event) {
+    if (event.keyCode === 13) {
+        event.preventDefault();
+    }
+});
+
+    document.getElementById('search_query3').addEventListener('keyup', function(event) {
+        handleSearch();
+    });
+
+    document.getElementById('search_query3').addEventListener('input', function(event) {
+        handleSearch();
+    });
+
+    function handleSearch() {
+        var search_query = document.getElementById('search_query3').value.toLowerCase();
+        var rows = document.querySelectorAll('.qr-row');
+
+        for (var i = 0; i < rows.length; i++) {
+            var match_found = false;
+            var cells = rows[i].getElementsByTagName('td');
+
+            // If the search query is empty, show all rows
+            if (search_query.trim() === '') {
+                rows[i].style.display = '';
+            } else {
+                // Iterate over each cell in the row
+                for (var j = 0; j < cells.length; j++) {
+                    var cell_text = cells[j].innerText.toLowerCase();
+
+                    // Check if the cell contains the search query
+                    if (cell_text.indexOf(search_query) !== -1) {
+                        match_found = true;
+                        break;
+                    }
+                }
+
+                // Show or hide the row based on whether a match was found
+                if (match_found) {
+                    rows[i].style.display = '';
+                } else {
+                    rows[i].style.display = 'none';
+                }
+            }
+        }
+    }
+</script>
 {% endblock %}

@@ -1,8 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('insert-form');
-    const qrbox = document.querySelector('.qrbox');
     const qrImage = document.getElementById('qrImage');
-    const SizeInput = document.getElementById('SizeInput');
+    const downloadBtn = document.getElementById('downloadBtn');
 
     let responseData;
     let selectedSize = 30;
@@ -10,7 +9,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateQRCodeSize() {
         qrImage.style.width = selectedSize + 'px';
         qrImage.style.height = selectedSize + 'px';
-        SizeInput.value = selectedSize;
     }
 
     function changeSize(size) {
@@ -50,17 +48,17 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             const formData = new FormData(form);
             formData.append('selected_size', selectedSize);
-    
+
             const response = await fetch('/insert', {
                 method: 'POST',
                 body: formData,
             });
-    
+
             if (!response.ok) {
                 showError('There is something wrong with the server.');
                 return;
             }
-    
+
             try {
                 responseData = await response.json();
             } catch (jsonError) {
@@ -68,33 +66,35 @@ document.addEventListener('DOMContentLoaded', function () {
                 showError('Error parsing server response.');
                 return;
             }
-    
+
             if (!responseData.success) {
                 showError('Error generating QR code. Please try again.');
                 return;
             }
 
-            qrbox.style.display = 'block';
-    
+            // Use the generated QR code image
             qrImage.src = 'data:image/png;base64,' + responseData.qr_image_base64;
             updateQRCodeSize();
-    
-            // Add this part to request the generated QR code from the server
-            const qrCodeID = responseData.qrCodeID;
-            const qrCodeUrl = `/qr_codes/${qrCodeID}`;
-            const qrCodeResponse = await fetch(qrCodeUrl);
-            if (qrCodeResponse.ok) {
-                // Use the generated QR code image
-                qrImage.src = qrCodeUrl;
-            } else {
-                console.error('Error loading generated QR code image.');
-            }
+
+            // Show the QR code size buttons and image after generating
+            toggleQRCodeVisibility(true);
+
+            clearForm();
+
         } catch (error) {
             console.error('Error:', error);
             showError('An unexpected error occurred.');
         }
     }
+    
 
+    function clearForm() {
+        const formInputs = form.querySelectorAll('input[type="text"]');
+        formInputs.forEach(input => {
+            input.value = ''; // Clear the value of each text input
+        });
+    }
+    // Set up an event listener for form submission
     form.addEventListener('submit', async function (event) {
         event.preventDefault();
         console.log('Form submitted');
@@ -131,6 +131,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Clean up the anchor element
         document.body.removeChild(a);
+
+        // Hide the QR code elements after clicking download
+        toggleQRCodeVisibility(false);
     });
 
+    // Function to toggle QR code size buttons and image visibility
+    function toggleQRCodeVisibility(isVisible) {
+        const qrBox = document.querySelector('.qrbox');
+        qrBox.style.display = isVisible ? 'block' : 'none';
+    }
+
+    // Initial setup: Hide the QR code size buttons and image
+    toggleQRCodeVisibility(false);
 });

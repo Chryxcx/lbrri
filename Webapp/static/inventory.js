@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     const shelfSelect = document.getElementById('shelf_id');
     const selectedShelfValue = document.getElementById('selected-shelf-value');
-    const catSelect = document.getElementById('catalog');
+    const catSelect = document.getElementById('cate_id');
     const selectedCatalogueValue = document.getElementById('selected-category-value');
     const searchInput = document.getElementById('search_query');
     const inventoryForm = document.getElementById('inventory-form');
@@ -18,7 +18,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const selectedCategory = catSelect.value;
         const searchQuery = searchInput.value;
 
-        fetch(`/inventory?shelf_id=${selectedShelf}&catalog=${selectedCategory}&search_query=${searchQuery}`)
+        console.log('Fetching data with parameters:', selectedShelf, selectedCategory, searchQuery);
+
+        fetch(`/inventory?shelf_id=${selectedShelf}&cate_id=${selectedCategory}&search_query=${searchQuery}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
@@ -26,6 +28,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 return response.json();
             })
             .then(data => {
+                console.log('Fetched data:', data);
                 originalData = data;
                 updateTable(data);
             })
@@ -62,6 +65,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Make a GET request using the fetch API
         fetchInventory();
+
+        // Toggle visibility of Quantity and Availability columns based on the selected shelf
+        const hideColumnsShelves = ['shelf01', 'shelf02', 'shelf03', 'shelf04', 'shelf05', 'shelf06', 'shelf07', 'shelf08', 'shelf09', 'shelf10', 'shelf11', 'shelf12', 'shelf13', 'shelf14', 'shelf15'];
+        const shouldHideColumns = hideColumnsShelves.includes(selectedShelf);
+
+        const quantityColumnHeader = document.querySelector('#rect4 th:nth-child(7)');
+        const quantityColumnCells = document.querySelectorAll('#rect4 td:nth-child(7)');
+        const availabilityColumnHeader = document.querySelector('#rect4 th:nth-child(8)');
+        const availabilityColumnCells = document.querySelectorAll('#rect4 td:nth-child(8)');
+
+        if (shouldHideColumns) {
+            quantityColumnHeader.style.display = 'none';
+            availabilityColumnHeader.style.display = 'none';
+            quantityColumnCells.forEach(cell => cell.style.display = 'none');
+            availabilityColumnCells.forEach(cell => cell.style.display = 'none');
+        } else {
+            quantityColumnHeader.style.display = '';
+            availabilityColumnHeader.style.display = '';
+            quantityColumnCells.forEach(cell => cell.style.display = '');
+            availabilityColumnCells.forEach(cell => cell.style.display = '');
+        }
     });
 
     catSelect.addEventListener('change', function () {
@@ -81,7 +105,6 @@ document.addEventListener('DOMContentLoaded', function () {
         updateTable(filteredData);
     }
 
-
     // Function to update the table with new data
     function updateTable(data) {
         const booksTableBody = document.getElementById('table-body');
@@ -100,14 +123,21 @@ document.addEventListener('DOMContentLoaded', function () {
             qrCell.appendChild(qrImage);
 
             // Populate other table cells
-            newRow.insertCell().textContent = row.category;
-            newRow.insertCell().textContent = row.isbn;
-            newRow.insertCell().textContent = row.title;
-            newRow.insertCell().textContent = row.publisher;
-            newRow.insertCell().textContent = row.year_published;
-            newRow.insertCell().textContent = row.quantity;
-            newRow.insertCell().textContent = row.availability;
+            if ('quantity' in row && 'availability' in row) {
+                newRow.insertCell().textContent = row.category;
+                newRow.insertCell().textContent = row.isbn;
+                newRow.insertCell().textContent = row.title;
+                newRow.insertCell().textContent = row.publisher;
+                newRow.insertCell().textContent = row.year_published;
+                newRow.insertCell().textContent = row.quantity;
+                newRow.insertCell().textContent = row.availability;
+            } else {
+                newRow.insertCell().textContent = row.category;
+                newRow.insertCell().textContent = row.isbn;
+                newRow.insertCell().textContent = row.title;
+                newRow.insertCell().textContent = row.publisher;
+                newRow.insertCell().textContent = row.year_published;
+            }
         });
     }
-    
 });

@@ -1,22 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Check Email{% endblock %}
+{% block title %}Borrowed books{% endblock %}
 {% block content %}
-<form id="borrowed-form">
+<form id="borrowed-form" class="rect2-8">
     <div>
         <div>
-            <h1 class="head"><a class="c"  href="/" id="log">Members Info</h1>
+            <h1>Borrowed books</h1>
         </div>
-        
+
         <div>
-            <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" id="search_query"
-                name="search_query" autocomplete="off">
+            <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" id="search_query2"
+                name="search_query2" autocomplete="off">
         </div>
-        <div id="rect4" class="table-responsive-lg">
+        <div id="rect4-2" class="table-responsive-lg">
             <table class="table table-hover table-sm table-borderless align-middle">
                 <thead>
                     <tr>
-                        <!-- <th scope="col">#</th> -->
-                        <th scope="col">Book ID</th>
+                        <th scope="col">QR Code</th>
                         <th scope="col">Staff Librarian</th>
                         <th scope="col">Borrower</th>
                         <th scope="col">Date Borrowed</th>
@@ -24,25 +23,71 @@
                         <th scope="col">Status</th>
                     </tr>
                 </thead>
-                <tbody> 
-                    {% if data %}
-                        {% for row in data %}
-                            <tr>
-                                <td>{{ row['staff_librarian'] }}</td>
-                                <td>{{ row['borrower'] }}</td>
-                                <td>{{ row['date_borrowed'] }}</td>
-                                <td>{{ row['date_return'] }}</td>
-                                <td>{{ row['status'] }}</td>
-                            </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="3">No data available</td>
+                <tbody>
+                    {% for row in data %}
+                    <tr class="qr-row"  data-qr-code="/qr_codes/{{ row['book_id'] }}">
+                            <td>
+                                <img src="/qr_codes/{{ row['book_id'] }}" class="qr-code-size" alt="QR Code">
+                            </td>
+                            <td>{{ row.staff_librarian }}</td>
+                            <td>{{ row.borrower }}</td>
+                            <td>{{ row.date_borrowed }}</td>
+                            <td>{{ row.date_return }}</td>
+                            <td>{{ row.status }}</td>
                         </tr>
-                    {% endif %}
+                    {% endfor %}
                 </tbody>
+
             </table>
         </div>
     </div>
 </form>
+<script>
+    document.addEventListener('keydown', function(event) {
+    if (event.keyCode === 13) {
+        event.preventDefault();
+    }
+});
+
+    document.getElementById('search_query2').addEventListener('keyup', function(event) {
+        handleSearch();
+    });
+
+    document.getElementById('search_query2').addEventListener('input', function(event) {
+        handleSearch();
+    });
+
+    function handleSearch() {
+        var search_query = document.getElementById('search_query2').value.toLowerCase();
+        var rows = document.querySelectorAll('.qr-row');
+
+        for (var i = 0; i < rows.length; i++) {
+            var match_found = false;
+            var cells = rows[i].getElementsByTagName('td');
+
+            // If the search query is empty, show all rows
+            if (search_query.trim() === '') {
+                rows[i].style.display = '';
+            } else {
+                // Iterate over each cell in the row
+                for (var j = 0; j < cells.length; j++) {
+                    var cell_text = cells[j].innerText.toLowerCase();
+
+                    // Check if the cell contains the search query
+                    if (cell_text.indexOf(search_query) !== -1) {
+                        match_found = true;
+                        break;
+                    }
+                }
+
+                // Show or hide the row based on whether a match was found
+                if (match_found) {
+                    rows[i].style.display = '';
+                } else {
+                    rows[i].style.display = 'none';
+                }
+            }
+        }
+    }
+</script>
 {% endblock %}

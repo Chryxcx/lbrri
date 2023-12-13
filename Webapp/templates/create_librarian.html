@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}AccountForLibrarian{% endblock %}
+{% block content %}
+    <form method="POST" action="{{ url_for('auth.create_librarian') }}" id="signup-form" class="rect2-6">
+        <div id="rect5">
+            <h1 class="header2">Create Account for Librarian/Staff</h1>
+            <div class"radio-group">
+                <label>
+                    <input type="radio" value="librarian" name="role" id="librarian" required>
+                    librarian
+                    <span></span>
+                </label>
+                <label>
+                    <input type="radio" value="staff" name="role" required>
+                    staff
+                    <span></span>
+                </label>
+            </div>
+            <div class="form-group">
+                <div class="txt_field2" >
+                    <input type="text" id="input" name="l_ffname" required>
+                    <span></span>
+                    <label>First Name</label>
+                </div>
+                <div class="txt_field2" >
+                    <input type="text" name="l_llname" required>
+                    <span></span>
+                    <label>Last Name</label>
+                </div>
+                <div class="txt_field2" >
+                    <input type="email" name="emailll"required>
+                    <span></span>
+                    <label>Email</label>
+                </div>
+                <div class="txt_field2" >
+                    <input type="contact" name="l_contact" required>
+                    <span></span>
+                    <label>Contact Number <small class="small">(Format: 09**-***-****)</small></label>
+                </div>
+                <div class="txt_field2" >
+                    <input type="text" name="l_usrnm" required>
+                    <span></span>
+                    <label>Username</label>
+                </div>
+                <div class="txt_field2" >
+                    <input type="password" name="lib_pass1" required>
+                    <span></span>
+                    <label>Password</label>
+                </div>
+                <div class="txt_field2" >
+                    <input type="password" name="lib_pass2" required>
+                    <span></span>
+                    <label>Comfirm Password</label>
+                </div>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <div class="create2"><button  type="submit" >Create</button>
+            </div>
+            <br/>
+        </div>
+    </form>
+
+{% endblock %}

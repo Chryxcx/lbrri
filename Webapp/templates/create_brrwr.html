@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Create Borrower Account{% endblock %}
+{% block content %}
+    <form method="POST" action="{{ url_for('auth.create_borrower') }}" id="signup-form" class="rect2-4">
+        <div class="container" id="rect5">
+            <h1 class="header2">Create Account for Borrower</h1>
+            <div class="form-group">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                <div class="txt_field3" >
+                    <input type="text" id="input" name="l_ffname" required>
+                    <span></span>
+                    <label>First Name</label>
+                </div>
+                <div class="txt_field3" >
+                    <input type="text" name="l_llname" required>
+                    <span></span>
+                    <label>Last Name</label>
+                </div>
+                <div class="txt_field3" >
+                    <input type="email" name="emailll" required>
+                    <span></span>
+                    <label>Email</label>
+                </div>
+                <div class="txt_field3" >
+                    <input type="contact" name="l_contact" required>
+                    <span></span>
+                    <label>Contact Number</label>
+                </div>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                  <div class="create3"><button  type="submit">Create</div>
+            </div>
+            <br/>
+        </div>
+    </form>
+{% endblock %}
